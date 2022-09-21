@@ -26,8 +26,8 @@ enum TrackQuality {
     };
 
 
-bool UseTemplatesForPUReweighting = false;
-bool writeTemplateOnDisk = true;
+bool UseTemplatesForPUReweighting = true;
+bool writeTemplateOnDisk = false;
 bool computeSpecial= false;
 bool boolDeDxTemp= false;
 bool get_list_of_bins = false;
@@ -789,28 +789,38 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    }
 
    vector <TH1D*> PU_distrib(ias_intervals);
-   int nPE = 100;
-   vector <TH1D*> PE_Ias;
-   PE_Ias.resize(nPE);
-   dEdxTemplatesPU.resize(ias_intervals, NULL);
-   PE_dEdxTemplatesPU.resize(nPE, NULL);
+ 
+   vector < vector <TH1D*> > PE_Ias, PE_Ias_cutih;
+   PE_Ias.resize(ias_intervals, vector<TH1D*>(nPE));
+   PE_Ias_cutih.resize(ias_intervals,vector<TH1D*>(nPE));
 
-   double means_ias_pe[nPE] = { 0 };
-   double err_means_ias_pe[nPE] = { 0 };
-   
-   for (int i = 0 ; i < nPE ; i++){
-      string name_pe = "PE_" + to_string(i+1) + "_Charge_Vs_Path";
-      string name_ias_pe = "IAS_strip_PE_" + to_string(i+1);
-      PE_Ias[i] = new TH1D(name_ias_pe.c_str(),name_ias_pe.c_str(),50,0,1);
+   dEdxTemplatesPU.resize(ias_intervals, NULL);
+  
+   PE_dEdxTemplatesPU.resize(ias_intervals, vector<TH3F*>(nPE));
+
+   //to change hardcoded ias_intervals * 4 for TGraphError 
+
+   double means_ias_pe[ias_intervals][nPE] = { 0 };
+   double err_means_ias_pe[ias_intervals][nPE] = { 0 };
+   double means_ias_pe_cutih[ias_intervals][nPE] = { 0 };
+   double err_means_ias_pe_cutih[ias_intervals][nPE] = { 0 };
+
+
+
+
+   for (int j = 0; j < ias_intervals; j++){ 
+      for (int i = 0 ; i < nPE ; i++){
+          string name_ias_pe = "IAS_strip_PE_" + to_string(i+1) + "_PU_" + to_string(what_bins[j]) + "_" + to_string(what_bins[j+1]);
+          PE_Ias[j][i] = new TH1D(name_ias_pe.c_str(),name_ias_pe.c_str(),50,0,1);
+          string name_ias_pe_cut = "IAS_strip_PE_" + to_string(i+1) +"_PU_" + to_string(what_bins[j]) + "_" + to_string(what_bins[j+1]) + "_cut_Ih";
+          PE_Ias_cutih[j][i]  = new TH1D(name_ias_pe_cut.c_str(),name_ias_pe_cut.c_str(),50,0,1);
+       }
    }
 
    vector <TH3D*> Charge_Vs_Path_PU;
    Charge_Vs_Path_PU.resize(ias_intervals);
    vector <string> names_templates;names_templates.resize(ias_intervals);
    cout << "after declaring all templates and for PE" << endl;
-
-   //if you don't want to automate the NPV bins, uncomment following and coimment lines up
-   //int what_bins[ias_intervals+1]={0,16,32,48,64,80};
 
    double ias_top_born[ias_intervals+1];
    for (int k = 0 ; k <= ias_intervals ; k++){
@@ -1064,11 +1074,12 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    Ias_all_base_nocut->Sumw2();
 
    Ias_toy->Sumw2();
-   for (int i = 0; i < nPE ; i++){
-       PE_Ias[i]->Sumw2();
-
+   for(int j = 0; j< ias_intervals; j++){
+       for (int i = 0; i < nPE ; i++){
+           PE_Ias[j][i]->Sumw2();
+           PE_Ias_cutih[j][i]->Sumw2();
+       }
    }
-
 
    IhStripVsP->Sumw2();
    IhStripVsPtight->Sumw2();
@@ -1564,7 +1575,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        outputIAS ="ias_study_2018";
        outputIAS+=Letter;
        outputIAS+="_template_2018A";
-       outputIAS+="_15mars_eta_1_pubins_5_minp_10.root";
+       outputIAS+="_15mars_eta_1_pubins_5_minp_10_final.root";
    }
    else{
        outputIAS = "not_filled_ias_study_writing_template.root";
@@ -1615,7 +1626,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    if (UseTemplatesForPUReweighting){ 
        // --------- LOADING ROOT FILE FOR TEMPLATES -------------
 
-       std::string TemplateStudyIas = "template_2018A_15mars_selection_5_bin_eta_2p1_pmin_10.root";
+       std::string TemplateStudyIas = "template_2018A_15mars_selection_5_bin_eta_2p1_pmin_10_final.root";
        std::string PE_TemplateStudyIas = "PE_templates.root";
        dEdxTemplatesAll = loadDeDxTemplate(TemplateStudyIas,"Charge_Vs_Path",true);
 
@@ -1623,12 +1634,13 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
            dEdxTemplatesPU[i] = loadDeDxTemplate(TemplateStudyIas,names_templates[i].c_str(),true); 
        }  
 
-       /*
-       for (int i = 0; i < nPE ; i++){
-           std::string name_pe_tpt = "PE_" + to_string(i); 
-           PE_dEdxTemplatesPU[i] = loadDeDxTemplate(PE_TemplateStudyIas,name_pe_tpt.c_str(),true);
+       for (int j = 0; j< ias_intervals; j++){ 
+           for (int i = 0; i < nPE ; i++){
+               std::string name_pe_tpt = "PE_" + to_string(i) + "_PU_" + to_string(what_bins[j]) + "_" + to_string(what_bins[j+1]); 
+               PE_dEdxTemplatesPU[j][i] = loadDeDxTemplate(PE_TemplateStudyIas,name_pe_tpt.c_str(),true);
+           }
        }
-       */
+
        dEdxTemplatesPuLow = loadDeDxTemplate(TemplateStudyIas,"Charge_Vs_Path_Low_PU",true);
        dEdxTemplatesPuMedium = loadDeDxTemplate(TemplateStudyIas,"Charge_Vs_Path_Middle_PU",true);
        dEdxTemplatesPuHigh = loadDeDxTemplate(TemplateStudyIas,"Charge_Vs_Path_High_PU",true);
@@ -2309,7 +2321,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
          //if (track_pt[index_of_the_track]<55) selection=false;
 
-         if (abs(track_eta[index_of_the_track])>2.1) selection=false; // Cutting tighter on eta means our templates will not be filled between bins 5-14
+         if (abs(track_eta[index_of_the_track])>1) selection=false; // Cutting tighter on eta means our templates will not be filled between bins 5-14
 
 
          //Garder les coupures de qualite
@@ -2706,15 +2718,17 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
 
              //   TOY MC
-
-             /*
-             
-             for (int k = 0 ; k < nPE ; k++){
-
-                double ias_poisson_err = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, PE_dEdxTemplatesPU[k],2, 0., nval20_0, nsat20_0);
-                PE_Ias[k]->Fill(ias_poisson_err);
+             for (int i = 0; i < ias_intervals; i++){
+                if ( npv > ias_top_born[i] && npv <= ias_top_born[i+1]){
+                    for (int k = 0 ; k < nPE ; k++){
+                        double ias_poisson_err = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, PE_dEdxTemplatesPU[i][k],2, 0., nval20_0, nsat20_0);
+                        PE_Ias[i][k]->Fill(ias_poisson_err);
+                        if (ih0_noL1 > 3.47){
+                            PE_Ias_cutih[i][k]->Fill(ias_poisson_err);
+                        }
+                     }
+                 }
              }
-             */
              
 
              PT_compute_ias->Fill(track_pt[itr]);
@@ -3794,18 +3808,122 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
        ias_pu_nocut->Write();
 
-       double bin_pe[] = new double[nPE];
-       double means_ias_nocut[ias_intervals] = { 0 };
-       for (i = 0; i<100; i++){
+       double bin_pe[nPE] = { 0 };
+       for (int i = 0 ; i < nPE; i++){
            bin_pe[i] = i+1;
-           means_ias_pe[i] = PE_Ias[i]->GetMean();
-           err_means_ias_pe[i] = PE_Ias[i]->GetMeanError();
-           
        }
-       TCanvas *pe_ias_mean = new TCanvas("pe_ias_mean","pe_ias_mean");
-       auto pe_ias_graph = new TGraphErrors(nPE,bin_pe,means_ias_pe,err_mean_x_base,error_means_ias_pe);
-       pe_ias_graph->Draw();
-       pe_ias_mean->Write();
+
+       for(int j = 0; j < ias_intervals; j++){ 
+           for (int i = 0; i<nPE; i++){
+               means_ias_pe[j][i] = PE_Ias[j][i]->GetMean();
+               err_means_ias_pe[j][i] = PE_Ias[j][i]->GetMeanError();
+
+               means_ias_pe_cutih[j][i] = PE_Ias_cutih[j][i]->GetMean();
+               err_means_ias_pe_cutih[j][i] = PE_Ias_cutih[j][i]->GetMeanError();
+           }
+       }
+
+
+       double ias_mean_0[nPE] = {0}, ias_mean_0_cutih[nPE] = {0};
+       double err_ias_mean_0[nPE] = {0}, err_ias_mean_0_cutih[nPE] = {0};
+
+       double ias_mean_1[nPE] = {0}, ias_mean_1_cutih[nPE] = {0};
+       double err_ias_mean_1[nPE] = {0}, err_ias_mean_1_cutih[nPE] = {0};
+
+       double ias_mean_2[nPE] = {0}, ias_mean_2_cutih[nPE] = {0};
+       double err_ias_mean_2[nPE] = {0}, err_ias_mean_2_cutih[nPE] = {0};
+
+       double ias_mean_3[nPE] = {0}, ias_mean_3_cutih[nPE] = {0};
+       double err_ias_mean_3[nPE] = {0}, err_ias_mean_3_cutih[nPE] = {0};
+
+       double ias_mean_4[nPE] = {0}, ias_mean_4_cutih[nPE] = {0};
+       double err_ias_mean_4[nPE] = {0}, err_ias_mean_4_cutih[nPE] = {0};
+       for (int i = 0; i < nPE; i++){
+           ias_mean_0[i] = means_ias_pe[0][i];
+           ias_mean_0_cutih[i] = means_ias_pe_cutih[0][i];
+           err_ias_mean_0[i] = err_means_ias_pe[0][i];
+           err_ias_mean_0_cutih[i] = err_means_ias_pe_cutih[0][i];
+
+           ias_mean_1[i] = means_ias_pe[1][i];
+           ias_mean_1_cutih[i] = means_ias_pe_cutih[1][i];
+           err_ias_mean_1[i] = err_means_ias_pe[1][i];
+           err_ias_mean_1_cutih[i] = err_means_ias_pe_cutih[1][i];
+
+           ias_mean_2[i] = means_ias_pe[2][i];
+           ias_mean_2_cutih[i] = means_ias_pe_cutih[2][i];
+           err_ias_mean_2[i] = err_means_ias_pe[2][i];
+           err_ias_mean_2_cutih[i] = err_means_ias_pe_cutih[2][i];
+
+
+           ias_mean_3[i] = means_ias_pe[3][i];
+           ias_mean_3_cutih[i] = means_ias_pe_cutih[3][i];
+           err_ias_mean_3[i] = err_means_ias_pe[3][i];
+           err_ias_mean_3_cutih[i] = err_means_ias_pe_cutih[3][i];
+
+
+           ias_mean_4[i] = means_ias_pe[4][i];
+           ias_mean_4_cutih[i] = means_ias_pe_cutih[4][i];
+           err_ias_mean_4[i] = err_means_ias_pe[4][i];
+           err_ias_mean_4_cutih[i] = err_means_ias_pe_cutih[4][i];
+       }
+
+
+       
+       TCanvas *pe_ias_mean_0 = new TCanvas("pe_ias_mean_PU_bin_1","pe_ias_mean_PU_bin_1");
+       auto pe_ias_graph_0 = new TGraphErrors(nPE,bin_pe,ias_mean_0,err_mean_x_base,err_ias_mean_0);
+       pe_ias_graph_0->Draw();
+       pe_ias_mean_0->Write();
+
+       TCanvas *pe_ias_mean_1 = new TCanvas("pe_ias_mean_PU_bin_2","pe_ias_mean_PU_bin_2");
+       auto pe_ias_graph_1 = new TGraphErrors(nPE,bin_pe,ias_mean_1,err_mean_x_base,err_ias_mean_1);
+       pe_ias_graph_1->Draw();
+       pe_ias_mean_1->Write();
+       
+       TCanvas *pe_ias_mean_2 = new TCanvas("pe_ias_mean_PU_bin_3","pe_ias_mean_PU_bin_3");
+       auto pe_ias_graph_2 = new TGraphErrors(nPE,bin_pe,ias_mean_2,err_mean_x_base,err_ias_mean_2);
+       pe_ias_graph_2->Draw();
+       pe_ias_mean_2->Write();
+
+       TCanvas *pe_ias_mean_3 = new TCanvas("pe_ias_mean_PU_bin_4","pe_ias_mean_PU_bin_4");
+       auto pe_ias_graph_3 = new TGraphErrors(nPE,bin_pe,ias_mean_3,err_mean_x_base,err_ias_mean_3);
+       pe_ias_graph_3->Draw();
+       pe_ias_mean_3->Write();
+
+
+       TCanvas *pe_ias_mean_4 = new TCanvas("pe_ias_mean_PU_bin_5","pe_ias_mean_PU_bin_5");
+       auto pe_ias_graph_4 = new TGraphErrors(nPE,bin_pe,ias_mean_4,err_mean_x_base,err_ias_mean_4);
+       pe_ias_graph_4->Draw();
+       pe_ias_mean_4->Write();
+
+       //SAME WITH IH CUT 
+
+       TCanvas *pe_ias_mean_0_cutih = new TCanvas("pe_ias_mean_PU_bin_1_cutih","pe_ias_mean_PU_bin_1_cutih");
+       auto pe_ias_graph_0_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_0_cutih,err_mean_x_base,err_ias_mean_0_cutih);
+       pe_ias_graph_0_cutih->Draw();
+       pe_ias_mean_0_cutih->Write();
+
+       TCanvas *pe_ias_mean_1_cutih = new TCanvas("pe_ias_mean_PU_bin_2_cutih","pe_ias_mean_PU_bin_2_cutih");
+       auto pe_ias_graph_1_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_1_cutih,err_mean_x_base,err_ias_mean_1_cutih);
+       pe_ias_graph_1_cutih->Draw();
+       pe_ias_mean_1_cutih->Write();
+       
+       TCanvas *pe_ias_mean_2_cutih = new TCanvas("pe_ias_mean_PU_bin_3_cutih","pe_ias_mean_PU_bin_3_cutih");
+       auto pe_ias_graph_2_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_2_cutih,err_mean_x_base,err_ias_mean_2_cutih);
+       pe_ias_graph_2_cutih->Draw();
+       pe_ias_mean_2_cutih->Write();
+
+       TCanvas *pe_ias_mean_3_cutih = new TCanvas("pe_ias_mean_PU_bin_4_cutih","pe_ias_mean_PU_bin_4_cutih");
+       auto pe_ias_graph_3_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_3_cutih,err_mean_x_base,err_ias_mean_3_cutih);
+       pe_ias_graph_3_cutih->Draw();
+       pe_ias_mean_3_cutih->Write();
+
+
+       TCanvas *pe_ias_mean_4_cutih = new TCanvas("pe_ias_mean_PU_bin_5_cutih","pe_ias_mean_PU_bin_5_cutih");
+       auto pe_ias_graph_4_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_4_cutih,err_mean_x_base,err_ias_mean_4_cutih);
+       pe_ias_graph_4_cutih->Draw();
+       pe_ias_mean_4_cutih->Write();
+
+
 
        TCanvas *cstack = new TCanvas("c1","stacked + normalized distribution"); 
 
@@ -4173,10 +4291,15 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
 
        Ias_toy->Write();
-       for (int i = 0; i < nPE ; i++){
-           PE_Ias[i]->Write();
+       /*
+       for(int j = 0: j< ias_intervals; j++){
+           for (int i = 0; i < nPE ; i++){
+               PE_Ias[j][i]->Write();
+               PE_Ias_cutih[j][i]->Write();
+           }
        }  
-       
+       */
+
        NPV_all->Write();
        NPV_presel->Write();
 

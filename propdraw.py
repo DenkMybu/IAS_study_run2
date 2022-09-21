@@ -38,11 +38,27 @@ if __name__ == "__main__":
      else:
          print("Successfully opened template from root file")
 
+     Tpt_PU_0_20 = file0.Get("Charge_Vs_Path_PU_between_0_20")
+ 
+     Tpt_PU_20_25 = file0.Get("Charge_Vs_Path_PU_between_20_25")
+     Tpt_PU_25_30 = file0.Get("Charge_Vs_Path_PU_between_25_30")
+     Tpt_PU_30_35 = file0.Get("Charge_Vs_Path_PU_between_30_35")
+     Tpt_PU_35_99 = file0.Get("Charge_Vs_Path_PU_between_35_99")
+
+
+
      nPE = 100
 
      hfile = TFile( 'PE_templates.root', 'RECREATE' )
 
      PE_templates = [0] * nPE
+     PE_templates_0_20 = [0] * nPE
+    
+     PE_templates_20_25 = [0] * nPE
+     PE_templates_25_30 = [0] * nPE
+     PE_templates_30_35 = [0] * nPE
+     PE_templates_35_99 = [0] * nPE
+
 
      RNG = TRandom3()
      
@@ -51,7 +67,32 @@ if __name__ == "__main__":
          PE_templates[i] = TH3D (name,name,P_NBins, P_Min, P_Max, Path_NBins, Path_Min, Path_Max, Charge_NBins, Charge_Min, Charge_Max)
          poissonHisto(PE_templates[i],AllIncTemplate,RNG)
          print("Done generating pseudo experiment #",i)         
-     
-     
+
+         name_0_20 = "PE_" + str(i) + "_PU_0_20"
+         PE_templates_0_20[i]= TH3D (name_0_20,name_0_20,P_NBins, P_Min, P_Max, Path_NBins, Path_Min, Path_Max, Charge_NBins, Charge_Min, Charge_Max)
+         poissonHisto(PE_templates_0_20[i],Tpt_PU_0_20,RNG)
+         print("Done generating pseudo experiment #",i, " for tpt 0_20")         
+          
+         name_20_25 = "PE_" + str(i) + "_PU_20_25"
+         PE_templates_20_25[i]= TH3D (name_20_25,name_20_25,P_NBins, P_Min, P_Max, Path_NBins, Path_Min, Path_Max, Charge_NBins, Charge_Min, Charge_Max)
+         poissonHisto(PE_templates_20_25[i],Tpt_PU_20_25,RNG)
+         print("Done generating pseudo experiment #",i, " for tpt 20_25")         
+
+
+         name_25_30 = "PE_" + str(i) + "_PU_25_30"
+         PE_templates_25_30[i]= TH3D (name_25_30,name_25_30,P_NBins, P_Min, P_Max, Path_NBins, Path_Min, Path_Max, Charge_NBins, Charge_Min, Charge_Max)
+         poissonHisto(PE_templates_25_30[i],Tpt_PU_25_30,RNG)
+         print("Done generating pseudo experiment #",i, " for tpt 25_30")         
+
+         name_30_35 = "PE_" + str(i) + "_PU_30_35"
+         PE_templates_30_35[i]= TH3D (name_30_35,name_30_35,P_NBins, P_Min, P_Max, Path_NBins, Path_Min, Path_Max, Charge_NBins, Charge_Min, Charge_Max)
+         poissonHisto(PE_templates_30_35[i],Tpt_PU_30_35,RNG)
+         print("Done generating pseudo experiment #",i, " for tpt 30_35")         
+
+         name_35_99 = "PE_" + str(i) + "_PU_35_99"
+         PE_templates_35_99[i]= TH3D (name_35_99,name_35_99,P_NBins, P_Min, P_Max, Path_NBins, Path_Min, Path_Max, Charge_NBins, Charge_Min, Charge_Max)
+         poissonHisto(PE_templates_35_99[i],Tpt_PU_35_99,RNG)
+         print("Done generating pseudo experiment #",i, " for tpt 35_99")         
+         
 
      hfile.Write()

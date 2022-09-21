@@ -17,6 +17,8 @@
 //Added buy Raphael H for IAS studies
 //
 #define ias_intervals 5
+#define nPE 100
+
 
 #include <TROOT.h>
 #include <TChain.h>
@@ -379,9 +381,8 @@ public :
    TH3F* dEdxTemplatesAll = NULL;
 
    vector<TH3F*> dEdxTemplatesPU;
-   vector<TH3F*> PE_dEdxTemplatesPU;
+   vector< vector<TH3F*> > PE_dEdxTemplatesPU;
 
-   vector<TH3F*> Pseudo_templates;
 
    TH3F* dEdxTemplatesPuLow = NULL;
    TH3F* dEdxTemplatesPuMedium = NULL;
