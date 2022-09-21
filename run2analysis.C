@@ -26,8 +26,8 @@ enum TrackQuality {
     };
 
 
-bool UseTemplatesForPUReweighting = true;
-bool writeTemplateOnDisk = false;
+bool UseTemplatesForPUReweighting = false;
+bool writeTemplateOnDisk = true;
 bool computeSpecial= false;
 bool boolDeDxTemp= false;
 bool get_list_of_bins = false;
@@ -789,17 +789,19 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    }
 
    vector <TH1D*> PU_distrib(ias_intervals);
-
+   int nPE = 100;
+   vector <TH1D*> PE_Ias;
+   PE_Ias.resize(nPE);
    dEdxTemplatesPU.resize(ias_intervals, NULL);
    PE_dEdxTemplatesPU.resize(nPE, NULL);
 
-   int nPE = 100;
-   vector<TH3D*> Pseudo_templates;
-   Pseudo_templates.resize(nPE);
-
+   double means_ias_pe[nPE] = { 0 };
+   double err_means_ias_pe[nPE] = { 0 };
+   
    for (int i = 0 ; i < nPE ; i++){
       string name_pe = "PE_" + to_string(i+1) + "_Charge_Vs_Path";
-      Pseudo_templates[i] = new TH3D( name_pe.c_str(), name_pe.c_str(), P_NBins, P_Min, P_Max, Path_NBins, Path_Min, Path_Max, Charge_NBins, Charge_Min, Charge_Max);
+      string name_ias_pe = "IAS_strip_PE_" + to_string(i+1);
+      PE_Ias[i] = new TH1D(name_ias_pe.c_str(),name_ias_pe.c_str(),50,0,1);
    }
 
    vector <TH3D*> Charge_Vs_Path_PU;
@@ -857,8 +859,8 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    Ias_when_PU_ih_cut_triple.resize(ias_intervals);
 
 
-   int ias_nb_events_interval[ias_intervals] = { 0 };
-   int ias_nb_events_interval_nocut[ias_intervals] = { 0 };
+
+
    double sums_ias[ias_intervals] = { 0 };
    double means_ias[ias_intervals] = { 0 };
 
@@ -866,8 +868,8 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    double sums_ias_nocut[ias_intervals] = { 0 };
    double means_ias_nocut[ias_intervals] = { 0 };
  
-   int ias_nb_events_interval_triple[ias_intervals] = { 0 };
-   int ias_nb_events_interval_triple_nocut[ias_intervals] = { 0 };
+
+
 
    double sums_ias_triple[ias_intervals] = { 0 };
    double means_ias_triple[ias_intervals] = { 0 };
@@ -893,7 +895,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    double ratio_above_qtl_cut_triple[ias_intervals] = {0};
 
 
-   vector<vector<double>> ias_triple(ias_intervals),ias_base(ias_intervals);
+
 
 
 
@@ -1022,7 +1024,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
       string end = std::to_string(upperlim).substr(0, std::to_string(upperlim).find(".") + precisionVal + 1);
       string trf = " < PU < ";
       string nameax = bg + trf + end; 
-      ias_axis_names[m] = nameax;
+      //ias_axis_names[m] = nameax;
    }
 
    for(int i = 0; i < 10;i++){
@@ -1062,13 +1064,10 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    Ias_all_base_nocut->Sumw2();
 
    Ias_toy->Sumw2();
+   for (int i = 0; i < nPE ; i++){
+       PE_Ias[i]->Sumw2();
 
-
-   
-   for (int m = 0; m < nPE ; m++){
-       Pseudo_templates[m]->Sumw2();
    }
-   
 
 
    IhStripVsP->Sumw2();
@@ -1555,7 +1554,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    else if (year==2018) templateFileName+="_2018";
    templateFileName+=Letter;
    if (!dataFlag) templateFileName+="_MC";
-   templateFileName+="_15mars_selection_5_bin_eta_2p1_pmin_10.root";
+   templateFileName+="_15mars_selection_5_bin_eta_2p1_pmin_10_final.root";
    TFile* OutputTemplate;
    if (writeTemplateOnDisk) OutputTemplate = new TFile(templateFileName,"RECREATE");
    if(!writeTemplateOnDisk) OutputTemplate = new TFile(templateFileName);
@@ -1615,15 +1614,21 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    //Added for tests 
    if (UseTemplatesForPUReweighting){ 
        // --------- LOADING ROOT FILE FOR TEMPLATES -------------
+
        std::string TemplateStudyIas = "template_2018A_15mars_selection_5_bin_eta_2p1_pmin_10.root";
+       std::string PE_TemplateStudyIas = "PE_templates.root";
        dEdxTemplatesAll = loadDeDxTemplate(TemplateStudyIas,"Charge_Vs_Path",true);
 
        for (int i = 0; i < ias_intervals ; i++){
            dEdxTemplatesPU[i] = loadDeDxTemplate(TemplateStudyIas,names_templates[i].c_str(),true); 
        }  
 
-
- 
+       /*
+       for (int i = 0; i < nPE ; i++){
+           std::string name_pe_tpt = "PE_" + to_string(i); 
+           PE_dEdxTemplatesPU[i] = loadDeDxTemplate(PE_TemplateStudyIas,name_pe_tpt.c_str(),true);
+       }
+       */
        dEdxTemplatesPuLow = loadDeDxTemplate(TemplateStudyIas,"Charge_Vs_Path_Low_PU",true);
        dEdxTemplatesPuMedium = loadDeDxTemplate(TemplateStudyIas,"Charge_Vs_Path_Middle_PU",true);
        dEdxTemplatesPuHigh = loadDeDxTemplate(TemplateStudyIas,"Charge_Vs_Path_High_PU",true);
@@ -2304,7 +2309,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
          //if (track_pt[index_of_the_track]<55) selection=false;
 
-         if (abs(track_eta[index_of_the_track])>1) selection=false; // Cutting tighter on eta means our templates will not be filled between bins 5-14
+         if (abs(track_eta[index_of_the_track])>2.1) selection=false; // Cutting tighter on eta means our templates will not be filled between bins 5-14
 
 
          //Garder les coupures de qualite
@@ -2702,13 +2707,15 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
              //   TOY MC
 
-
+             /*
+             
              for (int k = 0 ; k < nPE ; k++){
-                poissonHisto(*Pseudo_templates[k],dEdxTemplatesAll,RNG); 
-                double ias_poisson_err = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, Pseudo_templates[k],2, 0., nval20_0, nsat20_0);
-             }
 
-            
+                double ias_poisson_err = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, PE_dEdxTemplatesPU[k],2, 0., nval20_0, nsat20_0);
+                PE_Ias[k]->Fill(ias_poisson_err);
+             }
+             */
+             
 
              PT_compute_ias->Fill(track_pt[itr]);
              P_compute_ias->Fill(track_p[itr]);
@@ -2755,8 +2762,6 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                          PU_distrib[l]->Fill(npv);
                          sums_ias_nocut[l] += ias_strip_pu_base;
                          sums_ias_triple_nocut[l] += ias_strip_pu_triple;
-                         ias_nb_events_interval_triple_nocut[l]+=1;
-                         ias_nb_events_interval_nocut[l]+=1;
 
                      }
                  }
@@ -2769,16 +2774,11 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                      if (ih0_noL1 > 3.47){
                          if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
                              double ias_strip_pu_triple_l = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
-                             ias_nb_events_interval_triple[l]+=1;
-                             ias_nb_events_interval[l]+=1;
                              Ias_all_triple_cutIH->Fill(ias_strip_pu_triple_l);
                              Ias_all_base_cutIH->Fill(ias_strip_pu_base);
                              sums_ias_triple[l]+=ias_strip_pu_triple_l;
                              sums_ias[l]+=ias_strip_pu_base;
-                
-                             ias_triple[l].push_back(ias_strip_pu_triple_l);
-                             ias_base[l].push_back(ias_strip_pu_base);
-                         
+
                              Ias_when_PU_ih_cut[l]->Fill(ias_strip_pu_base);
                              Ias_when_PU_ih_cut_triple[l]->Fill(ias_strip_pu_triple_l);
                          }
@@ -3726,13 +3726,16 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        OutIasStudy->cd();
        for (int i = 0 ; i<ias_intervals ; i++){
           //normal are wit cut on IH
-          means_ias[i] = ((sums_ias[i]*1.0) / ias_nb_events_interval[i]);
-          means_ias_triple[i] = ((sums_ias_triple[i]*1.0) / ias_nb_events_interval_triple[i]);
+          means_ias[i] = Ias_when_PU_ih_cut[i]->GetMean();
+          means_ias_triple[i] = Ias_when_PU_ih_cut_triple[i]->GetMean();
+
 
           //Following are without cut on IH
           
-          means_ias_nocut[i] = ((sums_ias_nocut[i]*1.0) / ias_nb_events_interval_nocut[i]);
-          means_ias_triple_nocut[i] = ((sums_ias_triple_nocut[i]*1.0) / ias_nb_events_interval_triple_nocut[i]);
+          means_ias_nocut[i] = Ias_when_PU[i]->GetMean();
+
+          means_ias_triple_nocut[i] = Ias_when_PU_triple[i]->GetMean();
+          
           
           error_mean_triple_cutih[i] = Ias_when_PU_ih_cut_triple[i]->GetMeanError(); 
           error_mean_base_cutih[i] = Ias_when_PU_ih_cut[i]->GetMeanError(); 
@@ -3745,6 +3748,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        double ias_bins[ias_intervals];   
        for (int j = 0 ; j < ias_intervals ; j++){
             ias_bins[j] = PU_distrib[j]->GetMean();
+            ias_axis_names[j] = std::to_string(PU_distrib[j]->GetMean()).substr(0, std::to_string(PU_distrib[j]->GetMean()).find(".") + precisionVal + 1);
        }
 
 
@@ -3790,6 +3794,18 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
        ias_pu_nocut->Write();
 
+       double bin_pe[] = new double[nPE];
+       double means_ias_nocut[ias_intervals] = { 0 };
+       for (i = 0; i<100; i++){
+           bin_pe[i] = i+1;
+           means_ias_pe[i] = PE_Ias[i]->GetMean();
+           err_means_ias_pe[i] = PE_Ias[i]->GetMeanError();
+           
+       }
+       TCanvas *pe_ias_mean = new TCanvas("pe_ias_mean","pe_ias_mean");
+       auto pe_ias_graph = new TGraphErrors(nPE,bin_pe,means_ias_pe,err_mean_x_base,error_means_ias_pe);
+       pe_ias_graph->Draw();
+       pe_ias_mean->Write();
 
        TCanvas *cstack = new TCanvas("c1","stacked + normalized distribution"); 
 
@@ -3990,6 +4006,10 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
            PU_distrib[i]->Write();
        }
 
+
+
+        
+
        TCanvas *ias_qtl_pu = new TCanvas("90qtl","Ias 90% quantiles PU scenarios"); 
        auto ias_graph_qtl = new TGraph(ias_intervals,ias_bins,quantiles_PU_90);
        for (int u = 0 ; u < ias_intervals; u++){
@@ -4153,6 +4173,10 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
 
        Ias_toy->Write();
+       for (int i = 0; i < nPE ; i++){
+           PE_Ias[i]->Write();
+       }  
+       
        NPV_all->Write();
        NPV_presel->Write();
 
@@ -4175,9 +4199,6 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        PATHLENGHT_BIN_ETA_0_01->Write();
        TptGivenPathlenght1->Write();
 
-       for(int i = 0; i < nPE ; i++){
-           Pseudo_templates[i]->Write();
-       }
        OutIasStudy->Close();
   }
   
@@ -5205,14 +5226,4 @@ TH3F* run2analysis::loadDeDxTemplate(std::string path, std::string nameHisto, bo
    }
    InputFile->Close();
    return Prob_ChargePath;
-}
-
-void run2analysis::poissonHisto(TH3D &h,TH3D &p, TRandom3* RNG){
-    for(int i=0;i<p.GetNbinsX()+1;i++){
-        for(int j=0;j<p.GetNbinsY()+1;j++){
-            for (int k = 0; k < p.GetNbinsZ()+1;k++){
-                h.SetBinContent(i,j,k,RNG->Poisson(p.GetBinContent(i,j,k)));
-            }
-        }
-    }
 }

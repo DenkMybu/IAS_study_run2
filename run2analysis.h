@@ -373,7 +373,7 @@ public :
 
    TObject* GetObjectFromPath(TDirectory* File, std::string Path, bool GetACopy);
    TH3F* loadDeDxTemplate(std::string path, std::string nameHisto, bool splitByModuleType=false);
-   void poissonHisto(TH3D &h,TH3D &p, TRandom3* RNG);
+
 
    TH3F* dEdxTemplatesNoL1 = NULL;
    TH3F* dEdxTemplatesAll = NULL;
