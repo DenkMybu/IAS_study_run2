@@ -9,6 +9,9 @@ def poissonHisto(h,p,RNG):
             for k in range(p.GetNbinsZ()+1):
                 h.SetBinContent(i,j,k,RNG.Poisson(p.GetBinContent(i,j,k)))
 
+
+#check if normalised ou non -> tirage inutile si oui (dans l'histo 3D ou a la fin)
+
 #python3 propdraw.py template_2018B_15mars_selection_5_bin_eta_2p1_pmin_10.root
 
 
@@ -49,7 +52,7 @@ if __name__ == "__main__":
 
      nPE = 100
 
-     hfile = TFile( 'PE_templates.root', 'RECREATE' )
+     hfile = TFile( 'PE_templates_2018B.root', 'RECREATE' )
 
      PE_templates = [0] * nPE
      PE_templates_0_20 = [0] * nPE

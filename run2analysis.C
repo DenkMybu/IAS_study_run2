@@ -805,6 +805,10 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    double means_ias_pe_cutih[ias_intervals][nPE] = { 0 };
    double err_means_ias_pe_cutih[ias_intervals][nPE] = { 0 };
 
+   double std_dev_means_ias_pe[ias_intervals][nPE] = { 0 };
+   double std_dev_means_ias_pe_cutih[ias_intervals][nPE] = { 0 };
+   
+   
 
 
 
@@ -1011,6 +1015,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    TH1D* PT_compute_ias = new TH1D("PT_for_tracks_ias","PT_for_tracks_ias",1000,0,1000);
    TH1D* P_compute_ias = new TH1D("P_for_tracks_ias","P_for_tracks_ias",1000,0,1000);
 
+   TH2D* PU_VS_NPV = new TH2D( "PU_VS_NPV","PU_VS_NPV",100,0,100,100,0,100);
 
    // P and PT distrib for IAS tracks choosen
    TH2D* IAS_VS_PT = new TH2D( "IAS_VS_PT","IAS_VS_PT",50,0,1,200,0,1000);
@@ -1173,7 +1178,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    Htrackiasall_lowp->Sumw2();
 
 
-
+   PU_VS_NPV->Sumw2();
    PATHLENGHT_BIN_ETA_0_01->Sumw2();   
    TptGivenPathlenght1->Sumw2();
 
@@ -1626,8 +1631,12 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    if (UseTemplatesForPUReweighting){ 
        // --------- LOADING ROOT FILE FOR TEMPLATES -------------
 
-       std::string TemplateStudyIas = "template_2018A_15mars_selection_5_bin_eta_2p1_pmin_10_final.root";
-       std::string PE_TemplateStudyIas = "PE_templates.root";
+       std::string TemplateStudyIas = "template_2018";
+       TemplateStudyIas+=Letter; // chose for cross template, need to change by hand (lazy :s)
+       TemplateStudyIas+="_15mars_selection_5_bin_eta_2p1_pmin_10_final.root";
+       std::string PE_TemplateStudyIas = "PE_templates_2018";
+       PE_TemplateStudyIas+=Letter;
+       PE_TemplateStudyIas+=".root"; 
        dEdxTemplatesAll = loadDeDxTemplate(TemplateStudyIas,"Charge_Vs_Path",true);
 
        for (int i = 0; i < ias_intervals ; i++){
@@ -1674,18 +1683,19 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
       //if (!hlt_mu50 && !hlt_tkmu100 && !hlt_oldmu100 && !hlt_pfmet_mht) continue;
 
-      /* test PU
- 
+      // test PU
+
+      /* 
       unsigned int pileup_fromLumi = 0;
-      const edm::Handle<LumiScalersCollection> lumiScalers = iEvent.getHandle(lumiScalersToken_);
+      const Handle<LumiScalersCollection> lumiScalers = iEvent.getHandle(lumiScalersToken_);
       if (lumiScalers.isValid() &&  !lumiScalers->empty()){
           LumiScalersCollection::const_iterator scalit = lumiScalers->begin();
           pileup_fromLumi = scalit->pileup();
       }
-      
-
-
+      cout << "PU from token = " << pileup_fromLumi << " and NPV = : " << nPV << endl;
+      PU_VS_NPV->Fill(pileup_fromLumi,nPV);
       */
+      
 
       nPVVsRun->Fill(runNumber,npv);
       nPV->Fill(npv);
@@ -2718,17 +2728,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
 
              //   TOY MC
-             for (int i = 0; i < ias_intervals; i++){
-                if ( npv > ias_top_born[i] && npv <= ias_top_born[i+1]){
-                    for (int k = 0 ; k < nPE ; k++){
-                        double ias_poisson_err = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, PE_dEdxTemplatesPU[i][k],2, 0., nval20_0, nsat20_0);
-                        PE_Ias[i][k]->Fill(ias_poisson_err);
-                        if (ih0_noL1 > 3.47){
-                            PE_Ias_cutih[i][k]->Fill(ias_poisson_err);
-                        }
-                     }
-                 }
-             }
+
              
 
              PT_compute_ias->Fill(track_pt[itr]);
@@ -2740,6 +2740,18 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
              //Cut on track_p pour avoir la meme statistique que celle pour les templates
              if (track_p[itr]>10 && track_p[itr]<45) {
+
+                 for (int i = 0; i < ias_intervals; i++){
+                    if ( npv > ias_top_born[i] && npv <= ias_top_born[i+1]){
+                        for (int k = 0 ; k < nPE ; k++){
+                            double ias_poisson_err = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, PE_dEdxTemplatesPU[i][k],2, 0., nval20_0, nsat20_0);
+                            PE_Ias[i][k]->Fill(ias_poisson_err);
+                            if (ih0_noL1 > 3.47){
+                                PE_Ias_cutih[i][k]->Fill(ias_poisson_err);
+                            }
+                         }
+                     }
+                 }
 
 
 
@@ -3817,110 +3829,133 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
            for (int i = 0; i<nPE; i++){
                means_ias_pe[j][i] = PE_Ias[j][i]->GetMean();
                err_means_ias_pe[j][i] = PE_Ias[j][i]->GetMeanError();
+               std_dev_means_ias_pe[j][i] = PE_Ias[j][i]->GetStdDev();
+               
 
                means_ias_pe_cutih[j][i] = PE_Ias_cutih[j][i]->GetMean();
                err_means_ias_pe_cutih[j][i] = PE_Ias_cutih[j][i]->GetMeanError();
+               std_dev_means_ias_pe_cutih[j][i] = PE_Ias_cutih[j][i]->GetStdDev();
            }
        }
 
 
        double ias_mean_0[nPE] = {0}, ias_mean_0_cutih[nPE] = {0};
        double err_ias_mean_0[nPE] = {0}, err_ias_mean_0_cutih[nPE] = {0};
+       double ias_stddev_0[nPE] = {0}, ias_stddev_0_cutih[nPE] = {0};
+
 
        double ias_mean_1[nPE] = {0}, ias_mean_1_cutih[nPE] = {0};
        double err_ias_mean_1[nPE] = {0}, err_ias_mean_1_cutih[nPE] = {0};
+       double ias_stddev_1[nPE] = {0}, ias_stddev_1_cutih[nPE] = {0};
 
        double ias_mean_2[nPE] = {0}, ias_mean_2_cutih[nPE] = {0};
        double err_ias_mean_2[nPE] = {0}, err_ias_mean_2_cutih[nPE] = {0};
+       double ias_stddev_2[nPE] = {0}, ias_stddev_2_cutih[nPE] = {0};
 
        double ias_mean_3[nPE] = {0}, ias_mean_3_cutih[nPE] = {0};
        double err_ias_mean_3[nPE] = {0}, err_ias_mean_3_cutih[nPE] = {0};
+       double ias_stddev_3[nPE] = {0}, ias_stddev_3_cutih[nPE] = {0};
 
        double ias_mean_4[nPE] = {0}, ias_mean_4_cutih[nPE] = {0};
        double err_ias_mean_4[nPE] = {0}, err_ias_mean_4_cutih[nPE] = {0};
+       double ias_stddev_4[nPE] = {0}, ias_stddev_4_cutih[nPE] = {0};
+
+
        for (int i = 0; i < nPE; i++){
            ias_mean_0[i] = means_ias_pe[0][i];
            ias_mean_0_cutih[i] = means_ias_pe_cutih[0][i];
            err_ias_mean_0[i] = err_means_ias_pe[0][i];
            err_ias_mean_0_cutih[i] = err_means_ias_pe_cutih[0][i];
+           ias_stddev_0[i] = std_dev_means_ias_pe[0][i];
+           ias_stddev_0_cutih[i] = std_dev_means_ias_pe_cutih[0][i];
+
 
            ias_mean_1[i] = means_ias_pe[1][i];
            ias_mean_1_cutih[i] = means_ias_pe_cutih[1][i];
            err_ias_mean_1[i] = err_means_ias_pe[1][i];
            err_ias_mean_1_cutih[i] = err_means_ias_pe_cutih[1][i];
+           ias_stddev_1[i] = std_dev_means_ias_pe[1][i];
+           ias_stddev_1_cutih[i] = std_dev_means_ias_pe_cutih[1][i];
+
 
            ias_mean_2[i] = means_ias_pe[2][i];
            ias_mean_2_cutih[i] = means_ias_pe_cutih[2][i];
            err_ias_mean_2[i] = err_means_ias_pe[2][i];
            err_ias_mean_2_cutih[i] = err_means_ias_pe_cutih[2][i];
+           ias_stddev_2[i] = std_dev_means_ias_pe[2][i];
+           ias_stddev_2_cutih[i] = std_dev_means_ias_pe_cutih[2][i];
 
 
            ias_mean_3[i] = means_ias_pe[3][i];
            ias_mean_3_cutih[i] = means_ias_pe_cutih[3][i];
            err_ias_mean_3[i] = err_means_ias_pe[3][i];
            err_ias_mean_3_cutih[i] = err_means_ias_pe_cutih[3][i];
+           ias_stddev_3[i] = std_dev_means_ias_pe[3][i];
+           ias_stddev_3_cutih[i] = std_dev_means_ias_pe_cutih[3][i];
 
 
            ias_mean_4[i] = means_ias_pe[4][i];
            ias_mean_4_cutih[i] = means_ias_pe_cutih[4][i];
            err_ias_mean_4[i] = err_means_ias_pe[4][i];
            err_ias_mean_4_cutih[i] = err_means_ias_pe_cutih[4][i];
+           ias_stddev_4[i] = std_dev_means_ias_pe[4][i];
+           ias_stddev_4_cutih[i] = std_dev_means_ias_pe_cutih[4][i];
        }
 
 
        
        TCanvas *pe_ias_mean_0 = new TCanvas("pe_ias_mean_PU_bin_1","pe_ias_mean_PU_bin_1");
-       auto pe_ias_graph_0 = new TGraphErrors(nPE,bin_pe,ias_mean_0,err_mean_x_base,err_ias_mean_0);
-       pe_ias_graph_0->Draw();
+       auto pe_ias_graph_0 = new TGraphErrors(nPE,bin_pe,ias_mean_0,err_mean_x_base,ias_stddev_0);
+       pe_ias_graph_0->Draw("AP");
        pe_ias_mean_0->Write();
 
        TCanvas *pe_ias_mean_1 = new TCanvas("pe_ias_mean_PU_bin_2","pe_ias_mean_PU_bin_2");
-       auto pe_ias_graph_1 = new TGraphErrors(nPE,bin_pe,ias_mean_1,err_mean_x_base,err_ias_mean_1);
-       pe_ias_graph_1->Draw();
+       auto pe_ias_graph_1 = new TGraphErrors(nPE,bin_pe,ias_mean_1,err_mean_x_base,ias_stddev_1);
+       pe_ias_graph_1->Draw("AP");
        pe_ias_mean_1->Write();
        
        TCanvas *pe_ias_mean_2 = new TCanvas("pe_ias_mean_PU_bin_3","pe_ias_mean_PU_bin_3");
-       auto pe_ias_graph_2 = new TGraphErrors(nPE,bin_pe,ias_mean_2,err_mean_x_base,err_ias_mean_2);
-       pe_ias_graph_2->Draw();
+       auto pe_ias_graph_2 = new TGraphErrors(nPE,bin_pe,ias_mean_2,err_mean_x_base,ias_stddev_2);
+       pe_ias_graph_2->Draw("AP");
        pe_ias_mean_2->Write();
 
        TCanvas *pe_ias_mean_3 = new TCanvas("pe_ias_mean_PU_bin_4","pe_ias_mean_PU_bin_4");
-       auto pe_ias_graph_3 = new TGraphErrors(nPE,bin_pe,ias_mean_3,err_mean_x_base,err_ias_mean_3);
-       pe_ias_graph_3->Draw();
+       auto pe_ias_graph_3 = new TGraphErrors(nPE,bin_pe,ias_mean_3,err_mean_x_base,ias_stddev_3);
+       pe_ias_graph_3->Draw("AP");
        pe_ias_mean_3->Write();
 
 
        TCanvas *pe_ias_mean_4 = new TCanvas("pe_ias_mean_PU_bin_5","pe_ias_mean_PU_bin_5");
-       auto pe_ias_graph_4 = new TGraphErrors(nPE,bin_pe,ias_mean_4,err_mean_x_base,err_ias_mean_4);
-       pe_ias_graph_4->Draw();
+       auto pe_ias_graph_4 = new TGraphErrors(nPE,bin_pe,ias_mean_4,err_mean_x_base,ias_stddev_4);
+       pe_ias_graph_4->Draw("AP");
        pe_ias_mean_4->Write();
 
        //SAME WITH IH CUT 
 
        TCanvas *pe_ias_mean_0_cutih = new TCanvas("pe_ias_mean_PU_bin_1_cutih","pe_ias_mean_PU_bin_1_cutih");
-       auto pe_ias_graph_0_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_0_cutih,err_mean_x_base,err_ias_mean_0_cutih);
-       pe_ias_graph_0_cutih->Draw();
+       auto pe_ias_graph_0_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_0_cutih,err_mean_x_base,ias_stddev_0_cutih);
+       pe_ias_graph_0_cutih->Draw("AP");
        pe_ias_mean_0_cutih->Write();
 
        TCanvas *pe_ias_mean_1_cutih = new TCanvas("pe_ias_mean_PU_bin_2_cutih","pe_ias_mean_PU_bin_2_cutih");
-       auto pe_ias_graph_1_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_1_cutih,err_mean_x_base,err_ias_mean_1_cutih);
-       pe_ias_graph_1_cutih->Draw();
+       auto pe_ias_graph_1_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_1_cutih,err_mean_x_base,ias_stddev_1_cutih);
+       pe_ias_graph_1_cutih->Draw("AP");
        pe_ias_mean_1_cutih->Write();
        
        TCanvas *pe_ias_mean_2_cutih = new TCanvas("pe_ias_mean_PU_bin_3_cutih","pe_ias_mean_PU_bin_3_cutih");
-       auto pe_ias_graph_2_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_2_cutih,err_mean_x_base,err_ias_mean_2_cutih);
-       pe_ias_graph_2_cutih->Draw();
+       auto pe_ias_graph_2_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_2_cutih,err_mean_x_base,ias_stddev_2_cutih);
+       pe_ias_graph_2_cutih->Draw("AP");
        pe_ias_mean_2_cutih->Write();
 
        TCanvas *pe_ias_mean_3_cutih = new TCanvas("pe_ias_mean_PU_bin_4_cutih","pe_ias_mean_PU_bin_4_cutih");
-       auto pe_ias_graph_3_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_3_cutih,err_mean_x_base,err_ias_mean_3_cutih);
-       pe_ias_graph_3_cutih->Draw();
+       auto pe_ias_graph_3_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_3_cutih,err_mean_x_base,ias_stddev_3_cutih);
+       pe_ias_graph_3_cutih->Draw("AP");
        pe_ias_mean_3_cutih->Write();
 
 
        TCanvas *pe_ias_mean_4_cutih = new TCanvas("pe_ias_mean_PU_bin_5_cutih","pe_ias_mean_PU_bin_5_cutih");
-       auto pe_ias_graph_4_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_4_cutih,err_mean_x_base,err_ias_mean_4_cutih);
-       pe_ias_graph_4_cutih->Draw();
+       auto pe_ias_graph_4_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_4_cutih,err_mean_x_base,ias_stddev_4_cutih);
+       pe_ias_graph_4_cutih->Draw("AP");
        pe_ias_mean_4_cutih->Write();
 
 
@@ -4299,7 +4334,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
            }
        }  
        */
-
+       PU_VS_NPV->Write();
        NPV_all->Write();
        NPV_presel->Write();
 
