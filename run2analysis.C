@@ -11,6 +11,7 @@
 #include <fstream>
 #include <TEfficiency.h>
 #include "TRandom3.h"
+#include <TRatioPlot.h>
 
 enum TrackQuality {
       undefQuality = -1,
@@ -26,11 +27,19 @@ enum TrackQuality {
     };
 
 
-bool UseTemplatesForPUReweighting = true;
 bool writeTemplateOnDisk = false;
+bool writeTptHSCP = false;
+
 bool computeSpecial= false;
 bool boolDeDxTemp= false;
+
+
+bool UseTemplatesForPUReweighting = false;
 bool get_list_of_bins = false;
+
+bool compute_PE = false;
+bool UsePURwtHSCP = true;
+
 
 // Modification of the code in September 2021 to 
 // align it with the use of xtalk inversion (only for cluster cleaning) and saturation 
@@ -230,6 +239,10 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
 
 // histograms
+   TH1D* NHSCP = new TH1D("N_HSCP_POST_PRESEL", "N_HSCP_POST_PRESEL", 3, 0,3);
+   TH1D* NTRK = new TH1D("N_TRK_POST_PRESEL", "N_TRK_POST_PRESEL", 3, 0,3);
+   TH1D* N_CLU_HSCP = new TH1D("N_CLU_HSCP_POST_PRESEL", "N_CLU_HSCP_POST_PRESEL", 100, 0,100);
+   TH1D* N_CLU_TRK = new TH1D("N_CLU_TRK_POST_PRESEL", "N_CLU_TRK_POST_PRESEL", 100, 0,100);
 
    TH1D* HNtracks = new TH1D("HNtracks", "HNtracks", 50, -0.5,49.5);
    TH1D* HNtracks1 = new TH1D("HNtracks1", "Ntracks with pT>1", 40, -0.5,39.5);
@@ -660,18 +673,27 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    TH2D* HHit2DStrip = new TH2D( "HHit2DStrip", "HHit2DStrip", 50, 0, 100,200, 0, 20);
    TH2D* HHit2DStrip_NoM = new TH2D( "HHit2DStrip_NoM", "HHit2DStrip", 50, 0, 100,200, 0, 20);
 
-   TH2D* IhStripVsP = new TH2D("IhStripVsP_EtaCentral", "IhStripVsP_EtaCentral",100,0,10.0,50,0,100 );
-   TH2D* IhStripVsPtight = new TH2D("IhStripVsP_EtaTight", "IhStripVsP_EtaTight",100,0,10.0,50,0,100 );
+   TH2D* IhStripVsP = new TH2D("IhStrip_VsP_EtaCentral", "IhStripVsP_EtaCentral",100,0,10.0,50,0,100 );
+   TH2D* IhStripVsPtight = new TH2D("IhStrip_VsP_EtaTight", "IhStripVsP_EtaTight",100,0,10.0,50,0,100 );
 
-   TH2D* IhBestStripVsP = new TH2D("Ih0_noL1StripVsP_EtaCentral", "Ih0_noL1StripVsP_EtaCentral",100,0,10.0,50,0,100 );
-   TH2D* IhBestStripVsPtight = new TH2D("Ih0_noL1StripVsP_EtaTight", "Ih0_noL1StripVsP_EtaTight",100,0,10.0,50,0,100 );
+   TH2D* IhBestStripVsP = new TH2D("Ih0_noL1_VsP_EtaCentral", "Ih0_noL1StripVsP_EtaCentral",100,0,10.0,50,0,100 );
+   TH2D* IhBestStripVsPtight = new TH2D("Ih0_noL1_VsP_EtaTight", "Ih0_noL1StripVsP_EtaTight",100,0,10.0,50,0,100 );
 
 
-   TH2D* IhStripVsP_presk = new TH2D("IhStripVsP_EtaCentral_presk", "IhStripVsP_EtaCentral_presk",100,0,10.0,50,0,100 );
-   TH2D* IhStripVsPtight_presk = new TH2D("IhStripVsP_EtaTight_presk", "IhStripVsP_EtaTight_presk",100,0,10.0,50,0,100 );
+   TH2D* IhStripVsP_presk = new TH2D("IhStrip_VsP_EtaCentral_presk", "IhStripVsP_EtaCentral_presk",100,0,10.0,50,0,100 );
+   TH2D* IhStripVsPtight_presk = new TH2D("IhStrip_VsP_EtaTight_presk", "IhStripVsP_EtaTight_presk",100,0,10.0,50,0,100 );
 
-   TH2D* IhBestStripVsP_presk = new TH2D("Ih0_noL1StripVsP_EtaCentral_presk", "Ih0_noL1StripVsP_EtaCentral_presk",100,0,10.0,50,0,100 );
-   TH2D* IhBestStripVsPtight_presk = new TH2D("Ih0_noL1StripVsP_EtaTight_presk", "Ih0_noL1StripVsP_EtaTight_presk",100,0,10.0,50,0,100 );
+   TH2D* IhBestStripVsP_presk = new TH2D("Ih0_noL1_VsP_EtaCentral_presk", "Ih0_noL1StripVsP_EtaCentral_presk",100,0,10.0,50,0,100 );
+   TH2D* IhBestStripVsPtight_presk = new TH2D("Ih0_noL1_VsP_EtaTight_presk", "Ih0_noL1StripVsP_EtaTight_presk",100,0,10.0,50,0,100 );
+
+   TH2D* IhBestvsIas_p_5_100 = new TH2D("Ih0_noL1_vs_Ias_strip_only_p_5_100", "Ih0_noL1_vs_Ias_strip_p_5_100",100,0,10.0,50,0,1 );
+   TH2D* IhBestvsIas_p_10_45 = new TH2D("Ih0_noL1_vs_Ias_strip_only_p_10_45", "Ih0_noL1_vs_Ias_strip_p_10_45",100,0,10.0,50,0,1 );
+
+
+   TH2D* IasStripVsIh0noL1_p_10_45 = new TH2D("Ias_strip_VS_Ih0_noL1_p_10_45", "Ias_strip_VS_Ih0_noL1_p_10_45",50,0,1.0,100,0,10.0 );
+
+   TH2D* IhBestvsP_10_45_central = new TH2D("Ih0_noL1_vs_P_10_45_central", "Ih0_noL1_vs_P_10_45_central",100,0,10.0,50,0,1 );
+   TH2D* IhBestvsP_10_45_tight = new TH2D("Ih0_noL1_vs_P_10_45_tight", "Ih0_noL1_vs_P_10_45_tight",100,0,10.0,50,0,1 );
 
    TH1D* P_after_presel = new TH1D("P_after_presel","P_after_presel",50,0,100);
    TH1D* NPV_all = new TH1D("NPV_all","NPV all events",100,0,100);
@@ -699,6 +721,8 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    TH3D* Charge_Vs_Path_PU_between = new TH3D( "Charge_Vs_Path_Middle_PU", "Charge_Vs_Path_medium_pu", P_NBins, P_Min, P_Max, Path_NBins, Path_Min, Path_Max, Charge_NBins, Charge_Min, Charge_Max);
 
    TH3D* Charge_Vs_Path_PU_above_40 = new TH3D( "Charge_Vs_Path_High_PU", "Charge_Vs_Path_high_pu", P_NBins, P_Min, P_Max, Path_NBins, Path_Min, Path_Max, Charge_NBins, Charge_Min, Charge_Max);
+
+
    int what_bins[ias_intervals+1]={ 0 }; 
 
    TRandom3* RNG = new TRandom3();
@@ -795,7 +819,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    PE_Ias_cutih.resize(ias_intervals,vector<TH1D*>(nPE));
 
    dEdxTemplatesPU.resize(ias_intervals, NULL);
-  
+ 
    PE_dEdxTemplatesPU.resize(ias_intervals, vector<TH3F*>(nPE));
 
    //to change hardcoded ias_intervals * 4 for TGraphError 
@@ -865,14 +889,21 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    TH1D* Ias_toy  = new TH1D("Ias_toy_modgeom_1","Ias_toy_modgeom1",50,0,1);
 
    TEfficiency* eff_ih_PU = new TEfficiency("Eff_ih_PU","Eff of IH cut;PU;#epsilon",80,0,80);
+   TH1D* Is_all_base  = new TH1D("Is_strip_all_inclusive","Is_strip_all_inclusive",50,0,1);
 
    vector <TH1D*> Ias_when_PU,Ias_when_PU_triple,Ias_when_PU_ih_cut,Ias_when_PU_ih_cut_triple;
+
    Ias_when_PU.resize(ias_intervals);
    Ias_when_PU_triple.resize(ias_intervals);
    Ias_when_PU_ih_cut.resize(ias_intervals);
    Ias_when_PU_ih_cut_triple.resize(ias_intervals);
 
-
+   vector <TH1D*> Is_when_PU,Is_when_PU_triple,Is_when_PU_ih_cut,Is_when_PU_ih_cut_triple;
+   Is_when_PU.resize(ias_intervals);
+   Is_when_PU_triple.resize(ias_intervals);
+   Is_when_PU_ih_cut.resize(ias_intervals);
+   Is_when_PU_ih_cut_triple.resize(ias_intervals);
+   
 
 
    double sums_ias[ias_intervals] = { 0 };
@@ -912,7 +943,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
 
 
-
+   int nb_above_99_npv = 0;
    double quantiles_PU_90[ias_intervals] = { 0 };
    double quantiles_PU_triple_90[ias_intervals] = { 0 };
 
@@ -933,6 +964,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    string names_pu[ias_intervals] = {}; 
 
    for (int i = 0; i < ias_intervals; i++){
+       string is = "Is_when_PU_between_";
        string pren = "Ias_when_PU_between_";
        string uds = "_", base = "_base", triple = "_triple", cutIH = "_cutIH";
        string puname = "PU_";
@@ -947,6 +979,12 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        string fnlnamepu = puname + to_string(trunc_bg) + uds + to_string(trunc_end);
        names_pu[i] = fnlnamepu;
 
+      
+       string name_is = is + to_string(trunc_bg) + uds + to_string(trunc_end) + base;
+       string name_is_triple = is + to_string(trunc_bg) + uds + to_string(trunc_end) + triple;
+       string name_is_cutIH = is + to_string(trunc_bg) + uds + to_string(trunc_end) + base + cutIH;
+       string name_is_cutIH_triple = is + to_string(trunc_bg) + uds + to_string(trunc_end) + triple + cutIH;
+
        string name = pren + to_string(trunc_bg) + uds + to_string(trunc_end) + base;
        string nametriple = pren + to_string(trunc_bg) + uds + to_string(trunc_end) + triple;
        string namecutIH = pren + to_string(trunc_bg) + uds + to_string(trunc_end) + base + cutIH;
@@ -956,6 +994,12 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        Ias_when_PU_ih_cut[i] = new TH1D(namecutIH.c_str(),namecutIH.c_str(),50,0,1);
        Ias_when_PU_ih_cut_triple[i] = new TH1D(namecutIHtriple.c_str(),namecutIHtriple.c_str(),50,0,1);
        Ias_when_PU_triple[i] = new TH1D(nametriple.c_str(),nametriple.c_str(),50,0,1);
+
+       Is_when_PU[i] = new TH1D(name_is.c_str(),name_is.c_str(),50,0,1);
+       Is_when_PU_ih_cut[i] = new TH1D(name_is_cutIH.c_str(),name_is_cutIH.c_str(),50,0,1);
+       Is_when_PU_ih_cut_triple[i] = new TH1D(name_is_cutIH_triple.c_str(),name_is_cutIH_triple.c_str(),50,0,1);
+       Is_when_PU_triple[i] = new TH1D(name_is_triple.c_str(),name_is_triple.c_str(),50,0,1);
+       
    }
 
 
@@ -1015,6 +1059,9 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    TH1D* PT_compute_ias = new TH1D("PT_for_tracks_ias","PT_for_tracks_ias",1000,0,1000);
    TH1D* P_compute_ias = new TH1D("P_for_tracks_ias","P_for_tracks_ias",1000,0,1000);
 
+   TH1D* PT_hscp_compute_ias = new TH1D("HSCP_PT_for_tracks_ias","HSCP_PT_for_tracks_ias",1000,0,1000);
+   TH1D* P_hscp_compute_ias = new TH1D("HSCP_P_for_tracks_ias","HSCP_P_for_tracks_ias",1000,0,1000);
+
    TH2D* PU_VS_NPV = new TH2D( "PU_VS_NPV","PU_VS_NPV",100,0,100,100,0,100);
 
    // P and PT distrib for IAS tracks choosen
@@ -1065,13 +1112,18 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    HHit2DStrip->Sumw2();
    HHit2DStrip_NoM->Sumw2();
    Charge_Vs_Path->Sumw2();
+
    Charge_Vs_Path_PU_below_20->Sumw2();
    Charge_Vs_Path_PU_between->Sumw2();
    Charge_Vs_Path_PU_above_40->Sumw2();
+
    Charge_Vs_Path_noL1->Sumw2();
    Charge_Vs_Path_NoM->Sumw2();
    Charge_Vs_Path_noL1_NoM->Sumw2();
-
+   NHSCP->Sumw2();
+   NTRK->Sumw2();
+   N_CLU_HSCP->Sumw2();
+   N_CLU_TRK->Sumw2();
 
    Ias_all_triple_cutIH->Sumw2();
    Ias_all_base_cutIH->Sumw2();
@@ -1098,8 +1150,17 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    IhBestStripVsP_presk->Sumw2();
    IhBestStripVsPtight_presk->Sumw2();
 
+   IhBestvsP_10_45_central->Sumw2();
+   IhBestvsP_10_45_tight->Sumw2();
+ 
+   IhBestvsIas_p_5_100->Sumw2();
+   IhBestvsIas_p_10_45->Sumw2();
+   IasStripVsIh0noL1_p_10_45->Sumw2();
+   cout << "after cut ihvsIas" << endl;
    PT_compute_ias->Sumw2();
    P_compute_ias->Sumw2();
+   P_hscp_compute_ias->Sumw2();
+   PT_hscp_compute_ias->Sumw2();
 
    NPV_all->Sumw2();
    NPV_presel->Sumw2();
@@ -1115,17 +1176,23 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    Ias_when_PU_between_triple->Sumw2();
    Ias_when_PU_above_40_triple->Sumw2();
 
+   Is_all_base->Sumw2();
+
    for (int i = 0 ; i < ias_intervals ; i++){
       Ias_when_PU[i]->Sumw2();
       Ias_when_PU_triple[i]->Sumw2();
       Ias_when_PU_ih_cut[i]->Sumw2();
       Ias_when_PU_ih_cut_triple[i]->Sumw2();
+      Is_when_PU[i]->Sumw2();
+      Is_when_PU_triple[i]->Sumw2();
+      Is_when_PU_ih_cut[i]->Sumw2();
+      Is_when_PU_ih_cut_triple[i]->Sumw2();
       Charge_Vs_Path_PU[i]->Sumw2();   
       PU_distrib[i]->Sumw2();
    }
 
 
-
+   
    Ias_below_5GeV_PU_below_20_base->Sumw2();
    Ias_below_5GeV_PU_between_base->Sumw2();
    Ias_below_5GeV_PU_above_40_base->Sumw2();
@@ -1570,20 +1637,20 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    else if (year==2018) templateFileName+="_2018";
    templateFileName+=Letter;
    if (!dataFlag) templateFileName+="_MC";
-   templateFileName+="_15mars_selection_5_bin_eta_2p1_pmin_10_final.root";
+   templateFileName+="_15mars_selection_5_bin_eta_2p1_pmin_10_final_HSCP_noiso_new.root";
    TFile* OutputTemplate;
-   if (writeTemplateOnDisk) OutputTemplate = new TFile(templateFileName,"RECREATE");
-   if(!writeTemplateOnDisk) OutputTemplate = new TFile(templateFileName);
+   if (writeTemplateOnDisk || writeTptHSCP) OutputTemplate = new TFile(templateFileName,"RECREATE");
+   if(!(writeTemplateOnDisk || writeTptHSCP)) OutputTemplate = new TFile(templateFileName);
 
    TString outputIAS;   
-   if(!writeTemplateOnDisk){
+   if(!(writeTemplateOnDisk || writeTptHSCP)){
        outputIAS ="ias_study_2018";
        outputIAS+=Letter;
-       outputIAS+="_template_2018A";
-       outputIAS+="_15mars_eta_1_pubins_5_minp_10_final.root";
+       outputIAS+="_template_noiso_2018A";
+       outputIAS+="_15mars_eta_1_pubins_5_minp_10_final_HSCP_noiso.root";
    }
    else{
-       outputIAS = "not_filled_ias_study_writing_template.root";
+       outputIAS = "not_filled_ias_study_writing_template_HSCP.root";
    }
    TFile* OutIasStudy = new TFile(outputIAS,"RECREATE");
 //   loadSFPixelCalib();
@@ -1628,25 +1695,34 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
     }
 
    //Added for tests 
-   if (UseTemplatesForPUReweighting){ 
+   if (UsePURwtHSCP || UseTemplatesForPUReweighting){ 
        // --------- LOADING ROOT FILE FOR TEMPLATES -------------
 
        std::string TemplateStudyIas = "template_2018";
        TemplateStudyIas+=Letter; // chose for cross template, need to change by hand (lazy :s)
-       TemplateStudyIas+="_15mars_selection_5_bin_eta_2p1_pmin_10_final.root";
+       if(UseTemplatesForPUReweighting){ 
+           TemplateStudyIas+="_15mars_selection_5_bin_eta_2p1_pmin_10_final";
+       }
+       else{
+           TemplateStudyIas+="_15mars_selection_5_bin_eta_2p1_pmin_10_final_HSCP";
+       }
+       TemplateStudyIas+="_noiso_new.root";
+
        std::string PE_TemplateStudyIas = "PE_templates_2018";
        PE_TemplateStudyIas+=Letter;
-       PE_TemplateStudyIas+=".root"; 
+       PE_TemplateStudyIas+="_HSCP_noiso.root"; 
        dEdxTemplatesAll = loadDeDxTemplate(TemplateStudyIas,"Charge_Vs_Path",true);
 
        for (int i = 0; i < ias_intervals ; i++){
            dEdxTemplatesPU[i] = loadDeDxTemplate(TemplateStudyIas,names_templates[i].c_str(),true); 
        }  
 
-       for (int j = 0; j< ias_intervals; j++){ 
-           for (int i = 0; i < nPE ; i++){
-               std::string name_pe_tpt = "PE_" + to_string(i) + "_PU_" + to_string(what_bins[j]) + "_" + to_string(what_bins[j+1]); 
-               PE_dEdxTemplatesPU[j][i] = loadDeDxTemplate(PE_TemplateStudyIas,name_pe_tpt.c_str(),true);
+       if (compute_PE){ 
+           for (int j = 0; j< ias_intervals; j++){ 
+               for (int i = 0; i < nPE ; i++){
+                   std::string name_pe_tpt = "PE_" + to_string(i) + "_PU_" + to_string(what_bins[j]) + "_" + to_string(what_bins[j+1]); 
+                   PE_dEdxTemplatesPU[j][i] = loadDeDxTemplate(PE_TemplateStudyIas,name_pe_tpt.c_str(),true);
+               }
            }
        }
 
@@ -1672,7 +1748,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 //      if (runNumber>323232) continue;  // because 2018 is rereco at the moment --> remove this if when running on UL
 
 
-      //if (jentry > 1000000) break;
+      //if (jentry > 10000) break;
 
       // only Muon Trigger at the moment (because I am running on SingleMu data)
 //      if (!hlt_mu50 && !hlt_tkmu100 && !hlt_oldmu100) continue;
@@ -1701,18 +1777,20 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
       nPV->Fill(npv);
       NPV_all->Fill(npv);
       if (npv<1) continue;
-
+      if(npv > 99) nb_above_99_npv+=1;
       //if (jentry > 100000) break;
       float HighestMass=-1;
       // Loop on HSCP candidate
+
       for (int ihs=0; ihs<nhscp; ihs++) {
           int index_of_the_track=hscp_track_idx[ihs];
           if (index_of_the_track>-1) { 
              bool selection=true;
-             if (track_pt[index_of_the_track]<55) selection=false;
-             if (abs(track_eta[index_of_the_track])>2.1) selection=false;
 
-             if (track_nvalidhits[index_of_the_track]<8) selection=false;
+             //if (track_pt[index_of_the_track]<55) selection=false;
+             if (abs(track_eta[index_of_the_track])>1) selection=false;
+
+             if (track_nvalidhits[index_of_the_track]<10) selection=false;
              if (track_npixhits[index_of_the_track]<2) selection=false;
              if (track_validfraction[index_of_the_track]<0.8) selection=false;
              if (track_missing[index_of_the_track]>99999) selection=false;
@@ -1724,13 +1802,17 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
              if (track_chi2[index_of_the_track]>5) selection=false;
 
              // which selection for dz and dyx w/r to the primary vertex ? here 1st PV to pass the selection
-             if (abs(track_dxy[index_of_the_track])>0.5) selection=false;
-             if (abs(track_dz[index_of_the_track])>0.5) selection=false;
+             if (abs(track_dxy[index_of_the_track])>0.02) selection=false;
+             if (abs(track_dz[index_of_the_track])>0.1) selection=false;
 
              // which DR used for iso ? here 0.3
-             if (hscp_iso2_tk[ihs]>50) selection=false;
+             
+             //if (hscp_iso2_tk[ihs]>50) selection=false;
+
+
              float eop=(hscp_iso2_ecal[ihs] + hscp_iso2_hcal[ihs])/track_p[index_of_the_track];
-             if (eop>0.3) selection=false;
+             //if (eop>0.3) selection=false;
+
              // no cut on relative iso : false if hscpIso.Get_TK_SumEt() / track->pt() > 9999999
 
              // no cut on sigma pT/pT for signal yet :
@@ -1745,6 +1827,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
              // no cut yet :  false if  dedxSObj->numberOfMeasurements() < 6 ;
              
              if (selection) {
+                NHSCP->Fill(2);
                 ptVsRun->Fill(runNumber,track_pt[index_of_the_track]);
 
                 std::vector <float> charge_corr;
@@ -1787,6 +1870,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
                 int nstip_=0;
                 int npix_=0;
+                N_CLU_HSCP->Fill(track_index_hit[hscp_track_idx[ihs]]+track_nhits[hscp_track_idx[ihs]]);
                 for (int iclu=track_index_hit[hscp_track_idx[ihs]]; iclu<track_index_hit[hscp_track_idx[ihs]]+track_nhits[hscp_track_idx[ihs]]; iclu++) {
                      float ch1=dedx_charge[iclu];
                      bool clean1=true;
@@ -1875,11 +1959,284 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                             bool_cleaning5.push_back(clean1);
                          }
                        }
+                       if(writeTptHSCP){
+                           float norm_mult = 265; // 247 or 265?
+                           double Norm = 3.61e-06*norm_mult;
+                           double scaleFactor = dEdxSF[0];
+                           if(dedx_isstrip[iclu]){
+                               if (track_p[index_of_the_track]>10 && track_p[index_of_the_track]<45) {
+                                   Charge_Vs_Path->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10));
+                                   for (int l = 0 ; l < ias_intervals; l++){
+                                       if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
+                                           Charge_Vs_Path_PU[l]->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10));
+                                       }
+                                   }
+                               }
+                           }
+                           else{
+                               scaleFactor *=dEdxSF[1];
+                               if (track_p[index_of_the_track]>10 && track_p[index_of_the_track]<45) {
+                                   Charge_Vs_Path->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10*norm_mult));
+                                   for (int l = 0 ; l < ias_intervals; l++){
+                                       if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
+                                           Charge_Vs_Path_PU[l]->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10*norm_mult));
+                                       }
+                                   }
+                               }
+                           }
+                       }//END TPT
                     }
+                    //HERE TO CHANGE TRACK TO HSCP
 
-
+        
                 } // end loop iclu
 
+                if(UsePURwtHSCP){
+                    int nval20_0=0;
+                    int nsat20_0=0;
+                    int anval20_0=0;
+                    int ansat20_0=0;
+                    int nval4_0=0;
+                    int nsatv4_0=0;
+                    int nv = 0;
+                    int ns = 0;
+                    double scaleFactor = dEdxSF[0];
+                    float norm_mult = 265; // 247 or 265?
+                    double ias_all = getdEdX(charge_corr, pathlength, subdetId, moduleGeometry, bool_cleaning, mustBeInside, dEdxSF, dEdxTemplatesAll,2, 0., anval20_0, ansat20_0);
+                    double ias_strip_pu_base = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesAll,2, 0., nval20_0, nsat20_0);
+                    double is_strip_pu_base = getdEdXIs(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesAll,2, 0., nval20_0, nsat20_0);
+      
+                    double ih0_noL1 = getdEdX(charge_corr3, pathlength3, subdetId3, moduleGeometry3, bool_cleaning3, mustBeInside3, dEdxSF, NULL,2, 0., nv, ns);
+                    double ih_strip = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF,  NULL,2, 0.15,  nv, ns); 
+
+                    if (track_p[index_of_the_track] > 5 && track_p[index_of_the_track] < 100){
+                        if(abs(track_eta[index_of_the_track])<1){
+                            IhStripVsP_presk->Fill(ih_strip,track_p[index_of_the_track]);
+                            IhBestStripVsP_presk->Fill(ih0_noL1,track_p[index_of_the_track]);
+                            IhBestvsIas_p_5_100->Fill(ih0_noL1,ias_strip_pu_base);
+                        }
+                        if(abs(track_eta[index_of_the_track])<0.2){
+                            IhStripVsPtight_presk->Fill(ih_strip,track_p[index_of_the_track]);
+                            IhBestStripVsPtight_presk->Fill(ih0_noL1,track_p[index_of_the_track]);
+                        }
+       
+                    }
+                    if (track_p[index_of_the_track] > 10 && track_p[index_of_the_track] < 45){
+                        if(abs(track_eta[index_of_the_track])<1){
+                           IhBestvsIas_p_10_45->Fill(ih0_noL1,ias_strip_pu_base);
+                           IasStripVsIh0noL1_p_10_45->Fill(ias_strip_pu_base,ih0_noL1);
+                           IhBestvsP_10_45_central->Fill(ih0_noL1,track_p[index_of_the_track]);
+                        }
+                        if(abs(track_eta[index_of_the_track])<0.2){ 
+                            IhBestvsP_10_45_tight->Fill(ih0_noL1,track_p[index_of_the_track]);
+                        }
+                    }
+       
+                    if(track_p[index_of_the_track] > 5 && track_p[index_of_the_track] < 100){
+                        if(abs(track_eta[index_of_the_track])<1){
+                            //add presk for prescale in case of p < 5 GeV
+                            IhStripVsP->Fill(ih_strip,track_p[index_of_the_track]);
+                            IhBestStripVsP->Fill(ih0_noL1,track_p[index_of_the_track]);
+                        }
+                        if(abs(track_eta[index_of_the_track])<0.2){
+                            IhStripVsPtight->Fill(ih_strip,track_p[index_of_the_track]);
+                            IhBestStripVsPtight->Fill(ih0_noL1,track_p[index_of_the_track]);
+                        }
+                        
+                    }
+                
+                    //TOY FOR IAS MC 
+                    //
+                    // Get a given modul geom, draw from TH2D random values of charge vs Pathlength 
+       
+       
+                    //   TOY MC
+       
+                    
+       
+                    PT_compute_ias->Fill(track_pt[index_of_the_track]);
+                    P_compute_ias->Fill(track_p[index_of_the_track]);
+       
+       
+                    P_after_presel->Fill(track_p[index_of_the_track]);
+                     
+                    //Cut on track_p pour avoir la meme statistique que celle pour les templates
+                    if (track_p[index_of_the_track]>10 && track_p[index_of_the_track]<45) {
+                        if(compute_PE){
+                            //cout << "EVENT #" << jentry << " ,HSCP #" << ihs << " has track_p = " << track_p[index_of_the_track]<<endl;
+                            for (int i = 0; i < ias_intervals; i++){
+                                if ( npv > ias_top_born[i] && npv <= ias_top_born[i+1]){
+                                    //cout << " NPV for this event : " << npv << endl;
+                                    for (int k = 0 ; k < nPE ; k++){
+                                        int nval20_0 = 0,nsat20_0=0;
+                                        double ias_poisson_err = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, PE_dEdxTemplatesPU[i][k],2, 0., nval20_0, nsat20_0);
+                                        PE_Ias[i][k]->Fill(ias_poisson_err);
+                                        //if (k%50 == 0) cout << "below IH cut : PE #"<<k<< " from PU bin #" << i+1 << " has ias = " << ias_poisson_err <<endl;
+                                        
+                                        if (ih0_noL1 > 3.47){
+                                            PE_Ias_cutih[i][k]->Fill(ias_poisson_err);
+                                            //if(k%50 == 0) cout << "above IH cut : PE #" <<k<< " from PU bin #" << i+1 << " has ias = " << ias_poisson_err <<endl;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+       
+       
+       
+                        if (npv >= 16 && npv <= 18){
+                           double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuLow,2, 0., nval20_0, nsat20_0);
+                           Ias_when_PU_in_16_18_base->Fill(ias_strip_pu_base);    
+                           Ias_when_PU_in_16_18_triple->Fill(ias_strip_pu_triple);    
+                        }
+                        if ( npv >= 30 && npv <= 32){
+                           double ias_strip_pu_triple =getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuMedium,2, 0., nval20_0, nsat20_0);
+                           Ias_when_PU_in_30_32_base->Fill(ias_strip_pu_base);
+                           Ias_when_PU_in_30_32_triple->Fill(ias_strip_pu_triple);
+             
+                        }
+                        bool ihcut = false;
+                        if (ih0_noL1 > 3.47 ) ihcut = true;
+       
+                        eff_ih_PU->Fill(ihcut,npv);
+                        for (int l = 0 ; l < ias_intervals; l++){
+                            if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
+                                ih_eff_denom[l] += 1;
+                                if (ih0_noL1 > 3.47) ih_eff_num[l] +=1;
+       
+                            }
+                        }
+                        double trf = 0;
+                        for (int l = 0 ; l < ias_intervals; l++){
+                            if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
+                                double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
+                                double is_strip_pu_triple = getdEdXIs(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
+                                
+                                Ias_when_PU_triple[l]->Fill(ias_strip_pu_triple);
+                                Ias_when_PU[l]->Fill(ias_strip_pu_base);
+       
+                                Is_when_PU_triple[l]->Fill(is_strip_pu_triple);
+                                Is_when_PU[l]->Fill(is_strip_pu_base);
+       
+                                PU_distrib[l]->Fill(npv);
+                                sums_ias_nocut[l] += ias_strip_pu_base;
+                                sums_ias_triple_nocut[l] += ias_strip_pu_triple;
+                                Ias_all_triple_nocut->Fill(ias_strip_pu_triple);
+       
+                            }
+                        }
+                        if (npv > ias_top_born[ias_intervals]) trf = -1;
+       
+                        Ias_all_base_nocut->Fill(ias_strip_pu_base);
+       
+                        for (int l = 0 ; l < ias_intervals; l++){
+                            if (ih0_noL1 > 3.47){
+                                if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
+                                    double ias_strip_pu_triple_l = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
+                                    double is_strip_pu_triple_l = getdEdXIs(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
+       
+                                    Ias_all_triple_cutIH->Fill(ias_strip_pu_triple_l);
+                                    Ias_all_base_cutIH->Fill(ias_strip_pu_base);
+                                    sums_ias_triple[l]+=ias_strip_pu_triple_l;
+                                    sums_ias[l]+=ias_strip_pu_base;
+       
+                                    Ias_when_PU_ih_cut[l]->Fill(ias_strip_pu_base);
+                                    Ias_when_PU_ih_cut_triple[l]->Fill(ias_strip_pu_triple_l);
+       
+                                    Is_when_PU_ih_cut[l]->Fill(is_strip_pu_base);
+                                    Is_when_PU_ih_cut_triple[l]->Fill(is_strip_pu_triple_l);
+                                }
+                            }
+                        }
+       
+                        if(npv <= 20){
+                            Ias_vs_PU_below_20_base->Fill(ias_strip_pu_base,npv);                     
+                            Ias_when_PU_below_20_base->Fill(ias_strip_pu_base);
+                            //TH3D* ProjectTptLow = (TH3D*)InputTemplate->Get("Charge_Vs_Path_PU_below_20");
+                            double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuLow,2, 0., nval20_0, nsat20_0);
+       
+                            Ias_vs_PU_below_20_triple->Fill(ias_strip_pu_triple,npv);
+                            Ias_when_PU_below_20_triple->Fill(ias_strip_pu_triple);
+           
+       
+                        }
+                        else if(npv > 20 && npv <= 40){
+                            double ias_strip_pu_triple =getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuMedium,2, 0., nval20_0, nsat20_0);
+                            //double ias_pu_triple = getdEdX(charge_corr, pathlength, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, TptMid,2, 0., nval20_0, nsat20_0);
+                            Ias_vs_PU_between_triple->Fill(ias_strip_pu_triple,npv);
+                            Ias_vs_PU_between_base->Fill(ias_strip_pu_base,npv);
+                            Ias_when_PU_between_base->Fill(ias_strip_pu_base);
+                            Ias_when_PU_between_triple->Fill(ias_strip_pu_triple);
+                        }
+                        else if(npv > 40){
+                            double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuHigh,2, 0., nval20_0, nsat20_0);
+                            Ias_vs_PU_above_40_triple->Fill(ias_strip_pu_triple,npv);
+                            Ias_vs_PU_above_40_base->Fill(ias_strip_pu_base,npv);
+                            Ias_when_PU_above_40_base->Fill(ias_strip_pu_base);
+                            Ias_when_PU_above_40_triple->Fill(ias_strip_pu_triple);  
+                        }
+                    }
+
+                    else{ // MEANS P IS < 5 OR > 45
+                        if (npv <= 20){
+                            double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuHigh,2, 0., nval20_0, nsat20_0);
+                            Ias_below_5GeV_PU_below_20_base->Fill(ias_strip_pu_base);
+                            Ias_below_5GeV_PU_below_20_triple->Fill(ias_strip_pu_triple);
+       
+       
+                        }
+                        else if (npv > 20 && npv <=40){
+                            double ias_strip_pu_triple =getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuMedium,2, 0., nval20_0, nsat20_0);
+                            Ias_below_5GeV_PU_between_base->Fill(ias_strip_pu_base);
+                            Ias_below_5GeV_PU_between_triple->Fill(ias_strip_pu_triple);
+                            
+       
+                        }
+                        else if (npv > 40){
+                            double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuHigh,2, 0., nval20_0, nsat20_0); 
+                            Ias_below_5GeV_PU_above_40_base->Fill(ias_strip_pu_base);
+                            Ias_below_5GeV_PU_above_40_triple->Fill(ias_strip_pu_triple);
+       
+                        }              
+       
+                    }
+       
+                    IAS_VS_PT->Fill(ias_all,track_pt[index_of_the_track]);
+                    //cout << "filling ias_vs_pt with ias : " << ias_all << " for a pt = " << track_pt[index_of_the_track] << endl;
+                    
+                    if(track_pt[index_of_the_track]>60 && track_pt[index_of_the_track]<=80){
+                       ias_bin_pt[0]->Fill(ias_all);
+                       //cout << "filling ias for pt bin 60-80 with ias : " << ias_all << " and pt = " << track_pt[index_of_the_track] << endl;
+                    }
+                    if(track_pt[index_of_the_track] > 80 && track_pt[index_of_the_track] <= 100){
+                       ias_bin_pt[1]->Fill(ias_all);
+                       //cout << "filling ias for pt bin 80-100 with ias : " << ias_all << " and pt = " << track_pt[index_of_the_track] << endl;
+                    }
+                    if(track_pt[index_of_the_track] > 100 && track_pt[index_of_the_track] <= 120){
+                       ias_bin_pt[2]->Fill(ias_all);
+                    }
+                    if(track_pt[index_of_the_track] > 120 && track_pt[index_of_the_track] <= 140){
+                       ias_bin_pt[3]->Fill(ias_all); 
+                    }
+                    if(track_pt[index_of_the_track] > 140 && track_pt[index_of_the_track] <= 160){
+                       ias_bin_pt[4]->Fill(ias_all);
+                    }
+                    if(track_pt[index_of_the_track] > 160 && track_pt[index_of_the_track] <= 180){
+                       ias_bin_pt[5]->Fill(ias_all);
+                    }
+                    if(track_pt[index_of_the_track] > 180 && track_pt[index_of_the_track] <= 200){
+                       ias_bin_pt[6]->Fill(ias_all);
+                    }
+                    if(track_pt[index_of_the_track] > 200 && track_pt[index_of_the_track] <= 220){
+                       ias_bin_pt[7]->Fill(ias_all);
+                    }
+                    if(track_pt[index_of_the_track] > 220 && track_pt[index_of_the_track] <= 240){
+                       ias_bin_pt[8]->Fill(ias_all);
+                    }
+                    if(track_pt[index_of_the_track] > 240 && track_pt[index_of_the_track] <= 260){
+                       ias_bin_pt[9]->Fill(ias_all);
+                    }
+                } // end PU reweighting
 
                 if (charge_corr.size()>6) {  // the one for which we don't remove any hits
                   int nval1=0;
@@ -2004,13 +2361,40 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
 
                   // additional cut on the number of measurement points
-                  if (charge_corr3.size() >=6) {
+                  if (charge_corr3.size() >9) {
 
                      int nval4=0;
                      int nval4_0=0;
                      int nsatv4=0;
                      int nsatv4_0=0;
 
+                     /*
+                     for (int iclu=track_index_hit[hscp_track_idx[ihs]]; iclu<track_index_hit[hscp_track_idx[ihs]]+track_nhits[hscp_track_idx[ihs]]; iclu++) {
+                         float norm_mult = 265; // 247 or 265?
+                         double Norm = 3.61e-06*norm_mult;
+                         double scaleFactor = dEdxSF[0];
+                         if(dedx_isstrip[iclu]){
+                             if (track_p[index_of_the_track]>10 && track_p[index_of_the_track]<45) {
+                                 Charge_Vs_Path->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10));
+                                 for (int l = 0 ; l < ias_intervals; l++){
+                                     if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
+                                         Charge_Vs_Path_PU[l]->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10));
+                                     }
+                                 }
+                             }
+                         }
+                         else{
+                             scaleFactor *=dEdxSF[1];
+                             if (track_p[index_of_the_track]>10 && track_p[index_of_the_track]<45) {
+                                 for (int l = 0 ; l < ias_intervals; l++){
+                                     if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
+                                         Charge_Vs_Path_PU[l]->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10*norm_mult));
+                                     }
+                                 }
+                             }
+                         }
+                     }
+                     */
 
                      // Ih 15% drop of lowest values
                      double ih_LDnoL1    = getdEdX(charge_corr3, pathlength3, subdetId3, moduleGeometry3, bool_cleaning3, mustBeInside3, dEdxSF, NULL,2, 0.15, nval4, nsatv4);
@@ -2320,6 +2704,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
       int ntracks1=0;
       int ntracks20=0;
       //std::cout << "There are " << ntracks << " in this event, looping on them" << std::endl;
+      bool npv_presel = true;
       for (int itr=0; itr<ntracks; itr++) {
          //cout << " debug loop tracks "  << itr << endl;
          int presk= 1;
@@ -2367,12 +2752,14 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
          //if (track_pterr[index_of_the_track]/track_pt[index_of_the_track]>0.25) selection=false;
 
          if (!selection) continue;
-
+         NTRK->Fill(2);
          //Cut same as Analysis
          //p cut -> [5,45] post MIP but not in SR (change cut to 30 or 40 GeV jeu entre B et 
          //
-
-         NPV_presel->Fill(npv);
+         if (npv_presel){
+             NPV_presel->Fill(npv);
+             npv_presel = false;
+         }
          Htrackpt->Fill(track_pt[itr],presk);
 
          if (track_pt[itr]>1) ntracks1+=presk;
@@ -2420,6 +2807,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
 
          int nsatclu=0;
+         N_CLU_TRK->Fill(track_index_hit[index_of_the_track]+track_nhits[itr]);
          for (int iclu=track_index_hit[itr]; iclu<track_index_hit[itr]+track_nhits[itr]; iclu++) {
                //cout << "running over all hits from given track" << std::endl
 
@@ -2541,11 +2929,10 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                       Charge_Vs_Path_noL1->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10*norm_mult),presk);
                    }
                   }
-                  //cout << "PIXL Before track_p cut Charge_Vs_Path with modulgeom " << dedx_modulgeom[iclu] << endl;
+
+                  /*
                   if (track_p[itr]>10 && track_p[itr]<45) {
-                      //std::cout << "filling charge_vs_path for pixel with geo module " << dedx_modulgeom[iclu] << " , pathlenght = " << dedx_pathlength[iclu]*10 << " mm, and charge/pathlenght = " << scaleFactor*ch1/(dedx_pathlength[iclu]*10*norm_mult) << std::endl; 
                       Charge_Vs_Path->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10*norm_mult),presk);
-                      //cout << "PIXL After track_p cut Charge_Vs_Path with modulgeom " << dedx_modulgeom[iclu] << endl;
                       for (int l = 0 ; l < ias_intervals; l++){
                           if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
                               Charge_Vs_Path_PU[l]->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10*norm_mult),presk);
@@ -2563,6 +2950,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                       }
                       
                   }
+                  */
               }
               else {
                   //std::cout << "bool is NOT pixel, track p = " << track_p[itr] << std::endl;
@@ -2577,16 +2965,16 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                   //cout << " NO PIXL Before track_p cut Charge_Vs_Path with modulgeom " << dedx_modulgeom[iclu] << endl;
                   
                   if (track_p[itr]>10 && track_p[itr]<45) {
-                   //cout << "NO PIXL After track_p cut Charge_Vs_Path with modulgeom " << dedx_modulgeom[iclu] << endl;
-                   //std::cout << "filling charge_vs_path for strip with geo module " << dedx_modulgeom[iclu] << " , pathlenght = " << dedx_pathlength[iclu]*10 << " mm, and charge/pathlenght = " << scaleFactor*ch1/(dedx_pathlength[iclu]*10*norm_mult) << std::endl; 
-                   Charge_Vs_Path->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10),presk);
+                 //Charge_Vs_Path->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10),presk);
                    Charge_Vs_Path_noL1->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10), presk);
 
+                   /*
                    for (int l = 0 ; l < ias_intervals; l++){
                        if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
                            Charge_Vs_Path_PU[l]->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10),presk);
                        }
                    }
+                   */
 
                    if(npv <= 20){
                        Charge_Vs_Path_PU_below_20->Fill (dedx_modulgeom[iclu], dedx_pathlength[iclu]*10, scaleFactor*ch1/(dedx_pathlength[iclu]*10),presk);
@@ -2606,7 +2994,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
          }
   
          // APPLY Selection on the Number of Measurements :
-         if (charge_corr3.size()>6) {
+         if (charge_corr3.size()>9) {
             // Pixel no L1;
             float norm_mult = 265; // 247 or 265?
             for (unsigned int jch=0;jch<charge_corr4.size();jch++) {
@@ -2630,20 +3018,6 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 		  if (pathlength1[jch]>0) ChargeOverPathlength/=pathlength1[jch];
 	  	  else ChargeOverPathlength=0;
 		  HHitStrip->Fill(ChargeOverPathlength, presk);
-                  /* 
-                  if(npv < 20){
-                      //std::cout << "filling template PU < 20 " << std::endl;
-                      Charge_Vs_Path_PU_below_20->Fill (moduleGeometry1[jch], pathlength1[jch]*10, scaleFactor*charge_corr1[jch]/(pathlength1[jch]*10),presk);
-                  }
-                  else if (npv > 20 && npv < 40){
-                      //std::cout << "filling template 20 < PU < 40 " << std::endl;
-                      Charge_Vs_Path_PU_between->Fill (moduleGeometry1[jch], pathlength1[jch]*10, scaleFactor*charge_corr1[jch]/(pathlength1[jch]*10),presk);
-                  }
-                  else if (npv > 40){
-                      //std::cout << "filling template PU > 40 " << std::endl;
-                      Charge_Vs_Path_PU_above_40->Fill (moduleGeometry1[jch], pathlength1[jch]*10, scaleFactor*charge_corr1[jch]/(pathlength1[jch]*10),presk);
-                  }
-		  */
 
                   if (fabs(track_eta[itr])<0.4 && bool_cleaning1[jch] && mustBeInside1[jch] )
                              HHit2DStrip_NoM->Fill(track_p[itr], ChargeOverPathlength, presk);
@@ -2676,12 +3050,14 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
           
          double ias_strip = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesAll,2, 0., nval20_0, nsat20_0);
 
+         //double ias_strip_toy_test = getdEdX(//GetRandom()random from template GetRandom->(dEdxTemplatesAll[module][pathlebnght]->Find), pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesAll,2, 0., nval20_0, nsat20_0);
          //Reweighting of templates depending on the PU ( # npv )
   
          if(UseTemplatesForPUReweighting){
              double scaleFactor = dEdxSF[0];
              float norm_mult = 265; // 247 or 265?
              double ias_strip_pu_base = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesAll,2, 0., nval20_0, nsat20_0);
+             double is_strip_pu_base = getdEdXIs(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesAll,2, 0., nval20_0, nsat20_0);
 
             
              if (track_p[itr] > 5 && track_p[itr] < 100){
@@ -2693,6 +3069,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                      else{
                          IhStripVsP_presk->Fill(ih_strip,track_p[itr]);
                          IhBestStripVsP_presk->Fill(ih0_noL1,track_p[itr]);
+                         IhBestvsIas_p_5_100->Fill(ih0_noL1,ias_strip_pu_base);
                      }
                  }
                  if(abs(track_eta[itr])<0.2){
@@ -2707,6 +3084,12 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                      }
                  }
 
+             }
+             if (track_p[itr] > 10 && track_p[itr] < 45){
+                 if(abs(track_eta[itr])<1){
+                    IhBestvsIas_p_10_45->Fill(ih0_noL1,ias_strip_pu_base);
+                    //IhBestvsP_10_45->Fill(ih0_noL1,);
+                 }
              }
 
              if(track_p[itr] > 5 && track_p[itr] < 100){
@@ -2740,19 +3123,19 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
              //Cut on track_p pour avoir la meme statistique que celle pour les templates
              if (track_p[itr]>10 && track_p[itr]<45) {
-
-                 for (int i = 0; i < ias_intervals; i++){
-                    if ( npv > ias_top_born[i] && npv <= ias_top_born[i+1]){
-                        for (int k = 0 ; k < nPE ; k++){
-                            double ias_poisson_err = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, PE_dEdxTemplatesPU[i][k],2, 0., nval20_0, nsat20_0);
-                            PE_Ias[i][k]->Fill(ias_poisson_err);
-                            if (ih0_noL1 > 3.47){
-                                PE_Ias_cutih[i][k]->Fill(ias_poisson_err);
-                            }
+                 if(compute_PE){
+                     for (int i = 0; i < ias_intervals; i++){
+                         if ( npv > ias_top_born[i] && npv <= ias_top_born[i+1]){
+                             for (int k = 0 ; k < nPE ; k++){
+                                 double ias_poisson_err = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, PE_dEdxTemplatesPU[i][k],2, 0., nval20_0, nsat20_0);
+                                 PE_Ias[i][k]->Fill(ias_poisson_err);
+                                 if (ih0_noL1 > 3.47){
+                                     PE_Ias_cutih[i][k]->Fill(ias_poisson_err);
+                                 }
+                             }
                          }
                      }
                  }
-
 
 
 
@@ -2782,9 +3165,14 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                  for (int l = 0 ; l < ias_intervals; l++){
                      if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
                          double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
-                         trf = ias_strip_pu_triple;
-                         Ias_when_PU_triple[l]->Fill(trf);
+                         double is_strip_pu_triple = getdEdXIs(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
+                         
+                         Ias_when_PU_triple[l]->Fill(ias_strip_pu_triple);
                          Ias_when_PU[l]->Fill(ias_strip_pu_base);
+
+                         Is_when_PU_triple[l]->Fill(is_strip_pu_triple);
+                         Is_when_PU[l]->Fill(is_strip_pu_base);
+
                          PU_distrib[l]->Fill(npv);
                          sums_ias_nocut[l] += ias_strip_pu_base;
                          sums_ias_triple_nocut[l] += ias_strip_pu_triple;
@@ -2800,6 +3188,8 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                      if (ih0_noL1 > 3.47){
                          if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
                              double ias_strip_pu_triple_l = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
+                             double is_strip_pu_triple_l = getdEdXIs(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
+
                              Ias_all_triple_cutIH->Fill(ias_strip_pu_triple_l);
                              Ias_all_base_cutIH->Fill(ias_strip_pu_base);
                              sums_ias_triple[l]+=ias_strip_pu_triple_l;
@@ -2807,6 +3197,9 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
                              Ias_when_PU_ih_cut[l]->Fill(ias_strip_pu_base);
                              Ias_when_PU_ih_cut_triple[l]->Fill(ias_strip_pu_triple_l);
+
+                             Is_when_PU_ih_cut[l]->Fill(is_strip_pu_base);
+                             Is_when_PU_ih_cut_triple[l]->Fill(is_strip_pu_triple_l);
                          }
                      }
                  }
@@ -3731,7 +4124,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
    
 
-   if (writeTemplateOnDisk) {
+   if (writeTemplateOnDisk || writeTptHSCP) {
        OutputTemplate->cd();
   
        Charge_Vs_Path->Write();
@@ -3777,6 +4170,54 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
             ias_axis_names[j] = std::to_string(PU_distrib[j]->GetMean()).substr(0, std::to_string(PU_distrib[j]->GetMean()).find(".") + precisionVal + 1);
        }
 
+       double diff_mean_pe_pu_cutih[ias_intervals] = {0};
+       double diff_mean_pe_pu[ias_intervals] = {0};
+       double diff_qtl_pe_pu[ias_intervals] = {0};
+       double diff_qtl_pe_pu_cutih[ias_intervals] = {0};
+       
+       double sigmas_pe_pu_cutih[ias_intervals] = {0};
+       double sigmas_pe_pu[ias_intervals] = {0};
+       double sigmas_qtl_pu[ias_intervals] = {0};
+       double sigmas_qtl_pu_cutih[ias_intervals] = {0};
+
+       double mean_of_means[ias_intervals] = {0};
+       double mean_of_means_cutih[ias_intervals] = {0};
+       if (compute_PE){
+           for(int j = 0; j < ias_intervals; j++){
+               cout << "pu bin #" << j <<endl;
+               for (int i = 0; i<nPE; i++){
+                   mean_of_means[j] += PE_Ias[j][i]->GetMean();
+                   cout << "mean of means nb " << i << " = " << PE_Ias[j][i]->GetMean() << endl;
+                   mean_of_means_cutih[j] += PE_Ias_cutih[j][i]->GetMean();
+                   cout << "mean of means cut ih nb " << i << " = " << PE_Ias_cutih[j][i]->GetMean() << endl;
+               }
+               cout << "mean of means #" << j << " before division : " << mean_of_means[j] << endl;
+               mean_of_means[j] = (mean_of_means[j]*1.0/nPE);
+               cout << "mean of means cut ih #" << j << " before division : " << mean_of_means_cutih[j] << endl;
+               mean_of_means_cutih[j] = (mean_of_means_cutih[j]*1.0/nPE);
+           }
+           for(int j = 0; j < ias_intervals; j++){ 
+               for (int i = 0; i<nPE; i++){
+                   means_ias_pe[j][i] = PE_Ias[j][i]->GetMean();
+                   err_means_ias_pe[j][i] = PE_Ias[j][i]->GetMeanError();
+                   std_dev_means_ias_pe[j][i] = PE_Ias[j][i]->GetStdDev();
+                   diff_mean_pe_pu[j]+= pow((PE_Ias[j][i]->GetMean() - mean_of_means[j]),2);
+    
+                   means_ias_pe_cutih[j][i] = PE_Ias_cutih[j][i]->GetMean();
+                   err_means_ias_pe_cutih[j][i] = PE_Ias_cutih[j][i]->GetMeanError();
+                   std_dev_means_ias_pe_cutih[j][i] = PE_Ias_cutih[j][i]->GetStdDev();
+                   diff_mean_pe_pu_cutih[j]+= pow((PE_Ias_cutih[j][i]->GetMean() - mean_of_means_cutih[j]),2);
+               }
+           }
+           for (int i = 0 ; i < ias_intervals ; i++){
+               sigmas_pe_pu_cutih[i] = sqrt(diff_mean_pe_pu_cutih[i]*1.0/nPE);   
+               sigmas_pe_pu[i] = sqrt(diff_mean_pe_pu[i]*1.0/nPE);
+               std::cout << "PU bin #"<<i+1<<" ,has mean of means : " << mean_of_means_cutih[i] << " and PE std dev = "<< sigmas_pe_pu_cutih[i] <<endl; 
+           }
+       }
+       
+
+
 
        TCanvas *ias_pu = new TCanvas("mean_IH_cut","<Ias> VS PU scenarios from templates, cut Ih > 3.47"); 
        auto ias_graph = new TGraphErrors(ias_intervals,ias_bins,means_ias,err_mean_x_base,error_mean_base_cutih);
@@ -3793,7 +4234,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
            cout << "Eff of IH cut for PU between " << int(ias_top_born[k]) << " and " << int(ias_top_born[k+1]) << " is " << ih_eff_num[k] << " / " <<ih_eff_denom[k] << " = " << ih_eff_num[k]*1.0/ih_eff_denom[k] << endl;
        }
        
-       auto ias_graph_triple = new TGraphErrors(ias_intervals,ias_bins,means_ias_triple,err_mean_x_triple,error_mean_triple_cutih);
+       auto ias_graph_triple = new TGraphErrors(ias_intervals,ias_bins,means_ias_triple,err_mean_x_triple,sigmas_pe_pu_cutih);
        
        ias_graph_triple->SetLineColor(2);
        ias_graph->SetLineColor(4);
@@ -3806,7 +4247,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
        auto ias_graph_nocutih = new TGraphErrors(ias_intervals,ias_bins,means_ias_nocut,err_mean_x_base,error_mean_base);
        ias_graph_nocutih->SetTitle("<Ias> single/multiple templates, no cut IH"); 
-       auto ias_graph_triple_nocutih = new TGraphErrors(ias_intervals,ias_bins,means_ias_triple_nocut,err_mean_x_base,error_mean_triple);
+       auto ias_graph_triple_nocutih = new TGraphErrors(ias_intervals,ias_bins,means_ias_triple_nocut,err_mean_x_base,sigmas_pe_pu);
 
        for (int u = 0 ; u < ias_intervals; u++){
           ias_graph_nocutih->GetXaxis()->SetBinLabel(ias_graph->GetXaxis()->FindBin(ias_bins[u]),ias_axis_names[u].c_str());
@@ -3824,21 +4265,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        for (int i = 0 ; i < nPE; i++){
            bin_pe[i] = i+1;
        }
-
-       for(int j = 0; j < ias_intervals; j++){ 
-           for (int i = 0; i<nPE; i++){
-               means_ias_pe[j][i] = PE_Ias[j][i]->GetMean();
-               err_means_ias_pe[j][i] = PE_Ias[j][i]->GetMeanError();
-               std_dev_means_ias_pe[j][i] = PE_Ias[j][i]->GetStdDev();
-               
-
-               means_ias_pe_cutih[j][i] = PE_Ias_cutih[j][i]->GetMean();
-               err_means_ias_pe_cutih[j][i] = PE_Ias_cutih[j][i]->GetMeanError();
-               std_dev_means_ias_pe_cutih[j][i] = PE_Ias_cutih[j][i]->GetStdDev();
-           }
-       }
-
-
+       cout << "after bin PE 1 to 101"<<endl;
        double ias_mean_0[nPE] = {0}, ias_mean_0_cutih[nPE] = {0};
        double err_ias_mean_0[nPE] = {0}, err_ias_mean_0_cutih[nPE] = {0};
        double ias_stddev_0[nPE] = {0}, ias_stddev_0_cutih[nPE] = {0};
@@ -3860,105 +4287,128 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        double err_ias_mean_4[nPE] = {0}, err_ias_mean_4_cutih[nPE] = {0};
        double ias_stddev_4[nPE] = {0}, ias_stddev_4_cutih[nPE] = {0};
 
+       if(compute_PE){
+           for (int i = 0; i < nPE; i++){
+               ias_mean_0[i] = means_ias_pe[0][i];
+               ias_mean_0_cutih[i] = means_ias_pe_cutih[0][i];
+               err_ias_mean_0[i] = err_means_ias_pe[0][i];
+               err_ias_mean_0_cutih[i] = err_means_ias_pe_cutih[0][i];
+               ias_stddev_0[i] = std_dev_means_ias_pe[0][i];
+               ias_stddev_0_cutih[i] = std_dev_means_ias_pe_cutih[0][i];
+    
+    
+               ias_mean_1[i] = means_ias_pe[1][i];
+               ias_mean_1_cutih[i] = means_ias_pe_cutih[1][i];
+               err_ias_mean_1[i] = err_means_ias_pe[1][i];
+               err_ias_mean_1_cutih[i] = err_means_ias_pe_cutih[1][i];
+               ias_stddev_1[i] = std_dev_means_ias_pe[1][i];
+               ias_stddev_1_cutih[i] = std_dev_means_ias_pe_cutih[1][i];
+    
+    
+               ias_mean_2[i] = means_ias_pe[2][i];
+               ias_mean_2_cutih[i] = means_ias_pe_cutih[2][i];
+               err_ias_mean_2[i] = err_means_ias_pe[2][i];
+               err_ias_mean_2_cutih[i] = err_means_ias_pe_cutih[2][i];
+               ias_stddev_2[i] = std_dev_means_ias_pe[2][i];
+               ias_stddev_2_cutih[i] = std_dev_means_ias_pe_cutih[2][i];
+    
+    
+               ias_mean_3[i] = means_ias_pe[3][i];
+               ias_mean_3_cutih[i] = means_ias_pe_cutih[3][i];
+               err_ias_mean_3[i] = err_means_ias_pe[3][i];
+               err_ias_mean_3_cutih[i] = err_means_ias_pe_cutih[3][i];
+               ias_stddev_3[i] = std_dev_means_ias_pe[3][i];
+               ias_stddev_3_cutih[i] = std_dev_means_ias_pe_cutih[3][i];
+    
+    
+               ias_mean_4[i] = means_ias_pe[4][i];
+               ias_mean_4_cutih[i] = means_ias_pe_cutih[4][i];
+               err_ias_mean_4[i] = err_means_ias_pe[4][i];
+               err_ias_mean_4_cutih[i] = err_means_ias_pe_cutih[4][i];
+               ias_stddev_4[i] = std_dev_means_ias_pe[4][i];
+               ias_stddev_4_cutih[i] = std_dev_means_ias_pe_cutih[4][i];
 
-       for (int i = 0; i < nPE; i++){
-           ias_mean_0[i] = means_ias_pe[0][i];
-           ias_mean_0_cutih[i] = means_ias_pe_cutih[0][i];
-           err_ias_mean_0[i] = err_means_ias_pe[0][i];
-           err_ias_mean_0_cutih[i] = err_means_ias_pe_cutih[0][i];
-           ias_stddev_0[i] = std_dev_means_ias_pe[0][i];
-           ias_stddev_0_cutih[i] = std_dev_means_ias_pe_cutih[0][i];
+           }
+       
 
-
-           ias_mean_1[i] = means_ias_pe[1][i];
-           ias_mean_1_cutih[i] = means_ias_pe_cutih[1][i];
-           err_ias_mean_1[i] = err_means_ias_pe[1][i];
-           err_ias_mean_1_cutih[i] = err_means_ias_pe_cutih[1][i];
-           ias_stddev_1[i] = std_dev_means_ias_pe[1][i];
-           ias_stddev_1_cutih[i] = std_dev_means_ias_pe_cutih[1][i];
-
-
-           ias_mean_2[i] = means_ias_pe[2][i];
-           ias_mean_2_cutih[i] = means_ias_pe_cutih[2][i];
-           err_ias_mean_2[i] = err_means_ias_pe[2][i];
-           err_ias_mean_2_cutih[i] = err_means_ias_pe_cutih[2][i];
-           ias_stddev_2[i] = std_dev_means_ias_pe[2][i];
-           ias_stddev_2_cutih[i] = std_dev_means_ias_pe_cutih[2][i];
-
-
-           ias_mean_3[i] = means_ias_pe[3][i];
-           ias_mean_3_cutih[i] = means_ias_pe_cutih[3][i];
-           err_ias_mean_3[i] = err_means_ias_pe[3][i];
-           err_ias_mean_3_cutih[i] = err_means_ias_pe_cutih[3][i];
-           ias_stddev_3[i] = std_dev_means_ias_pe[3][i];
-           ias_stddev_3_cutih[i] = std_dev_means_ias_pe_cutih[3][i];
-
-
-           ias_mean_4[i] = means_ias_pe[4][i];
-           ias_mean_4_cutih[i] = means_ias_pe_cutih[4][i];
-           err_ias_mean_4[i] = err_means_ias_pe[4][i];
-           err_ias_mean_4_cutih[i] = err_means_ias_pe_cutih[4][i];
-           ias_stddev_4[i] = std_dev_means_ias_pe[4][i];
-           ias_stddev_4_cutih[i] = std_dev_means_ias_pe_cutih[4][i];
+       
+           TCanvas *pe_ias_mean_0 = new TCanvas("pe_ias_mean_PU_bin_1","pe_ias_mean_PU_bin_1");
+           auto pe_ias_graph_0 = new TGraphErrors(nPE,bin_pe,ias_mean_0,err_mean_x_base,err_ias_mean_0);
+           pe_ias_graph_0->SetMarkerStyle(21);
+           pe_ias_graph_0->Draw("APL");
+           pe_ias_mean_0->Write();
+    
+           TCanvas *pe_ias_mean_1 = new TCanvas("pe_ias_mean_PU_bin_2","pe_ias_mean_PU_bin_2");
+           auto pe_ias_graph_1 = new TGraphErrors(nPE,bin_pe,ias_mean_1,err_mean_x_base,err_ias_mean_1);
+           pe_ias_graph_1->SetMarkerStyle(21);
+           pe_ias_graph_1->Draw("APL");
+           pe_ias_mean_1->Write();
+           
+           TCanvas *pe_ias_mean_2 = new TCanvas("pe_ias_mean_PU_bin_3","pe_ias_mean_PU_bin_3");
+           auto pe_ias_graph_2 = new TGraphErrors(nPE,bin_pe,ias_mean_2,err_mean_x_base,err_ias_mean_2);
+           pe_ias_graph_2->SetMarkerStyle(21);
+           pe_ias_graph_2->Draw("APL");
+           pe_ias_mean_2->Write();
+    
+           TCanvas *pe_ias_mean_3 = new TCanvas("pe_ias_mean_PU_bin_4","pe_ias_mean_PU_bin_4");
+           auto pe_ias_graph_3 = new TGraphErrors(nPE,bin_pe,ias_mean_3,err_mean_x_base,err_ias_mean_3);
+           pe_ias_graph_3->SetMarkerStyle(21);
+           pe_ias_graph_3->Draw("APL");
+           pe_ias_mean_3->Write();
+    
+    
+           TCanvas *pe_ias_mean_4 = new TCanvas("pe_ias_mean_PU_bin_5","pe_ias_mean_PU_bin_5");
+           auto pe_ias_graph_4 = new TGraphErrors(nPE,bin_pe,ias_mean_4,err_mean_x_base,err_ias_mean_4);
+           pe_ias_graph_4->SetMarkerStyle(21);
+           pe_ias_graph_4->Draw("APL");
+           pe_ias_mean_4->Write();
+    
+           //SAME WITH IH CUT 
+    
+           TCanvas *pe_ias_mean_0_cutih = new TCanvas("pe_ias_mean_PU_bin_1_cutih","pe_ias_mean_PU_bin_1_cutih");
+           auto pe_ias_graph_0_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_0_cutih,err_mean_x_base,err_ias_mean_0_cutih);
+           pe_ias_graph_0_cutih->SetMarkerStyle(21);
+           pe_ias_graph_0_cutih->Draw("APL");
+           pe_ias_mean_0_cutih->Write();
+    
+           TCanvas *pe_ias_mean_1_cutih = new TCanvas("pe_ias_mean_PU_bin_2_cutih","pe_ias_mean_PU_bin_2_cutih");
+           auto pe_ias_graph_1_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_1_cutih,err_mean_x_base,err_ias_mean_1_cutih);
+           pe_ias_graph_1_cutih->SetMarkerStyle(21);
+           pe_ias_graph_1_cutih->Draw("APL");
+           pe_ias_mean_1_cutih->Write();
+           
+           TCanvas *pe_ias_mean_2_cutih = new TCanvas("pe_ias_mean_PU_bin_3_cutih","pe_ias_mean_PU_bin_3_cutih");
+           auto pe_ias_graph_2_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_2_cutih,err_mean_x_base,err_ias_mean_2_cutih);
+           pe_ias_graph_2_cutih->SetMarkerStyle(21);
+           pe_ias_graph_2_cutih->Draw("APL");
+           pe_ias_mean_2_cutih->Write();
+    
+           TCanvas *pe_ias_mean_3_cutih = new TCanvas("pe_ias_mean_PU_bin_4_cutih","pe_ias_mean_PU_bin_4_cutih");
+           auto pe_ias_graph_3_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_3_cutih,err_mean_x_base,err_ias_mean_3_cutih);
+           pe_ias_graph_3_cutih->SetMarkerStyle(21);
+           pe_ias_graph_3_cutih->Draw("APL");
+           pe_ias_mean_3_cutih->Write();
+    
+    
+           TCanvas *pe_ias_mean_4_cutih = new TCanvas("pe_ias_mean_PU_bin_5_cutih","pe_ias_mean_PU_bin_5_cutih");
+           auto pe_ias_graph_4_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_4_cutih,err_mean_x_base,err_ias_mean_4_cutih);
+           pe_ias_graph_4_cutih->SetMarkerStyle(21);
+           pe_ias_graph_4_cutih->Draw("APL");
+           pe_ias_mean_4_cutih->Write();
        }
 
+       NHSCP->Write();
+       NTRK->Write();
+       N_CLU_HSCP->Write();
+       N_CLU_TRK->Write();
+       std::cout << "after all PE canvases" << endl;
 
-       
-       TCanvas *pe_ias_mean_0 = new TCanvas("pe_ias_mean_PU_bin_1","pe_ias_mean_PU_bin_1");
-       auto pe_ias_graph_0 = new TGraphErrors(nPE,bin_pe,ias_mean_0,err_mean_x_base,ias_stddev_0);
-       pe_ias_graph_0->Draw("AP");
-       pe_ias_mean_0->Write();
+       IhBestvsIas_p_5_100->Write();
+       IhBestvsIas_p_10_45->Write();
+       IasStripVsIh0noL1_p_10_45->Write();
 
-       TCanvas *pe_ias_mean_1 = new TCanvas("pe_ias_mean_PU_bin_2","pe_ias_mean_PU_bin_2");
-       auto pe_ias_graph_1 = new TGraphErrors(nPE,bin_pe,ias_mean_1,err_mean_x_base,ias_stddev_1);
-       pe_ias_graph_1->Draw("AP");
-       pe_ias_mean_1->Write();
-       
-       TCanvas *pe_ias_mean_2 = new TCanvas("pe_ias_mean_PU_bin_3","pe_ias_mean_PU_bin_3");
-       auto pe_ias_graph_2 = new TGraphErrors(nPE,bin_pe,ias_mean_2,err_mean_x_base,ias_stddev_2);
-       pe_ias_graph_2->Draw("AP");
-       pe_ias_mean_2->Write();
-
-       TCanvas *pe_ias_mean_3 = new TCanvas("pe_ias_mean_PU_bin_4","pe_ias_mean_PU_bin_4");
-       auto pe_ias_graph_3 = new TGraphErrors(nPE,bin_pe,ias_mean_3,err_mean_x_base,ias_stddev_3);
-       pe_ias_graph_3->Draw("AP");
-       pe_ias_mean_3->Write();
-
-
-       TCanvas *pe_ias_mean_4 = new TCanvas("pe_ias_mean_PU_bin_5","pe_ias_mean_PU_bin_5");
-       auto pe_ias_graph_4 = new TGraphErrors(nPE,bin_pe,ias_mean_4,err_mean_x_base,ias_stddev_4);
-       pe_ias_graph_4->Draw("AP");
-       pe_ias_mean_4->Write();
-
-       //SAME WITH IH CUT 
-
-       TCanvas *pe_ias_mean_0_cutih = new TCanvas("pe_ias_mean_PU_bin_1_cutih","pe_ias_mean_PU_bin_1_cutih");
-       auto pe_ias_graph_0_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_0_cutih,err_mean_x_base,ias_stddev_0_cutih);
-       pe_ias_graph_0_cutih->Draw("AP");
-       pe_ias_mean_0_cutih->Write();
-
-       TCanvas *pe_ias_mean_1_cutih = new TCanvas("pe_ias_mean_PU_bin_2_cutih","pe_ias_mean_PU_bin_2_cutih");
-       auto pe_ias_graph_1_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_1_cutih,err_mean_x_base,ias_stddev_1_cutih);
-       pe_ias_graph_1_cutih->Draw("AP");
-       pe_ias_mean_1_cutih->Write();
-       
-       TCanvas *pe_ias_mean_2_cutih = new TCanvas("pe_ias_mean_PU_bin_3_cutih","pe_ias_mean_PU_bin_3_cutih");
-       auto pe_ias_graph_2_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_2_cutih,err_mean_x_base,ias_stddev_2_cutih);
-       pe_ias_graph_2_cutih->Draw("AP");
-       pe_ias_mean_2_cutih->Write();
-
-       TCanvas *pe_ias_mean_3_cutih = new TCanvas("pe_ias_mean_PU_bin_4_cutih","pe_ias_mean_PU_bin_4_cutih");
-       auto pe_ias_graph_3_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_3_cutih,err_mean_x_base,ias_stddev_3_cutih);
-       pe_ias_graph_3_cutih->Draw("AP");
-       pe_ias_mean_3_cutih->Write();
-
-
-       TCanvas *pe_ias_mean_4_cutih = new TCanvas("pe_ias_mean_PU_bin_5_cutih","pe_ias_mean_PU_bin_5_cutih");
-       auto pe_ias_graph_4_cutih = new TGraphErrors(nPE,bin_pe,ias_mean_4_cutih,err_mean_x_base,ias_stddev_4_cutih);
-       pe_ias_graph_4_cutih->Draw("AP");
-       pe_ias_mean_4_cutih->Write();
-
-
+       IhBestvsP_10_45_central->Write();
+       IhBestvsP_10_45_tight->Write();
 
        TCanvas *cstack = new TCanvas("c1","stacked + normalized distribution"); 
 
@@ -4031,16 +4481,17 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        ias_bin_pt[9]->SetLineWidth(2);
        ias_bin_pt[9]->SetMarkerStyle(23);
     
-
-       for(int i=0;i<10;i++){ 
-           itg_norm[i] = (1./ias_bin_pt[i]->Integral());
-           ias_bin_pt[i]->Write(); //write raw hist and then normalize it
-           ias_bin_pt[i]->Scale(itg_norm[i]);//normalization
+       if(UsePURwtHSCP || UseTemplatesForPUReweighting){
+           for(int i=0;i<10;i++){ 
+               itg_norm[i] = (1./ias_bin_pt[i]->Integral());
+               ias_bin_pt[i]->Write(); //write raw hist and then normalize it
+               ias_bin_pt[i]->Scale(itg_norm[i]);//normalization
         
-           itg_norm_PU[i] = (1./ias_bin_pt_PUcorr[i]->Integral());
-           ias_bin_pt_PUcorr[i]->Write();
-           ias_bin_pt_PUcorr[i]->Scale(itg_norm_PU[i]);//normalization 
-           if(i != 0) ias_bin_pt[i]->Draw("SAME HIST");
+               itg_norm_PU[i] = (1./ias_bin_pt_PUcorr[i]->Integral());
+               ias_bin_pt_PUcorr[i]->Write();
+               ias_bin_pt_PUcorr[i]->Scale(itg_norm_PU[i]);//normalization 
+               if(i != 0) ias_bin_pt[i]->Draw("SAME HIST");
+           }
        } 
     
     
@@ -4102,7 +4553,8 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
        PT_compute_ias->Write();
        P_compute_ias->Write();
-      
+       PT_hscp_compute_ias->Write();
+       P_hscp_compute_ias->Write();
 
        Ias_vs_PU_below_20_base->Write();
        Ias_vs_PU_between_base->Write();
@@ -4156,6 +4608,11 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
            Ias_when_PU_ih_cut[i]->Write();
            Ias_when_PU_ih_cut_triple[i]->Write();
            Ias_when_PU_triple[i]->Write();
+           Is_when_PU[i]->Write();
+           Is_when_PU_ih_cut[i]->Write();
+           Is_when_PU_ih_cut_triple[i]->Write();
+           Is_when_PU_triple[i]->Write();
+
            PU_distrib[i]->Write();
        }
 
@@ -4271,7 +4728,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
            cout << " TRIPLE CUT IH : \n " << " PU bin " << i << " has ratio of integrals after 90% qtl = " << ratio_above_qtl_cut_triple[i] << endl;
        }
        // ***** plot all normalized IAS distribution ******
-       TCanvas *ias_pu_normal = new TCanvas("IAS","normalised distribution"); 
+       TCanvas *ias_pu_normal = new TCanvas("IAS_single","IAS from single template"); 
        Ias_when_PU[0]->Draw("C*");
        for (int k = 1; k < ias_intervals ; k++){
            Ias_when_PU[k]->Draw("SAME C*"); 
@@ -4282,9 +4739,16 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
            leg_norm->AddEntry(Ias_when_PU[u],names_pu[u].c_str(),"l"); 
        }
        leg_norm->Draw();
-       ias_pu_normal->Write(); 
+       ias_pu_normal->Write();
 
-       TCanvas *ias_pu_triple = new TCanvas("IAS triple","normalised distribution"); 
+       TCanvas *ias_pu_normal_ratio = new TCanvas("IAS_single_RATIO","RATIO IAS from single template"); 
+       auto rp = new TRatioPlot(Ias_when_PU[2], Ias_when_PU[0]);
+       ias_pu_normal_ratio->SetTicks(0,1);
+
+       rp->Draw();
+       ias_pu_normal_ratio->Write(); 
+
+       TCanvas *ias_pu_triple = new TCanvas("IAS_triple","IAS from multiple templates"); 
        Ias_when_PU_triple[0]->Draw("C*");
        for (int k = 1; k < ias_intervals ; k++){
            Ias_when_PU_triple[k]->Draw("SAME C*");
@@ -4296,7 +4760,15 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        leg_triple->Draw();
        ias_pu_triple->Write();
 
-       TCanvas *ias_pu_normal_cut = new TCanvas("IAS cut IH","normalised distribution");  
+
+       TCanvas *ias_pu_triple_ratio = new TCanvas("IAS_triple_RATIO","RATIO IAS from multiple templates"); 
+       auto rp2 = new TRatioPlot(Ias_when_PU_triple[2], Ias_when_PU_triple[0]);
+       ias_pu_triple_ratio->SetTicks(0,1);
+
+       rp2->Draw();
+       ias_pu_triple_ratio->Write();
+
+       TCanvas *ias_pu_normal_cut = new TCanvas("IAS_single_cut_IH","IAS from single template, cut IH");  
        Ias_when_PU_ih_cut[0]->Draw("C*");
        for (int k = 1; k < ias_intervals ; k++){
            Ias_when_PU_ih_cut[k]->Draw("SAME C*");
@@ -4308,7 +4780,15 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        leg_norm_cut->Draw();
        ias_pu_normal_cut->Write();
 
-       TCanvas *ias_pu_triple_cut = new TCanvas("IAS triple cut IH","normalised distribution"); 
+       
+       TCanvas *ias_pu_normal_cut_ratio = new TCanvas("IAS_single_cut_IH_RATIO","RATIO IAS from single template, cut IH");  
+       auto rp3 = new TRatioPlot(Ias_when_PU_ih_cut[2], Ias_when_PU_ih_cut[0]);
+       ias_pu_normal_cut_ratio->SetTicks(0,1);
+
+       rp3->Draw();
+       ias_pu_normal_cut_ratio->Write();
+
+       TCanvas *ias_pu_triple_cut = new TCanvas("IAS_triple_cut_IH","IAS from multiple templates cut IH"); 
        Ias_when_PU_ih_cut_triple[0]->Draw("C*");
        for (int k = 1; k < ias_intervals ; k++){
            Ias_when_PU_ih_cut_triple[k]->Draw("SAME C*");
@@ -4319,21 +4799,15 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        }
        leg_triple_cut->Draw();
        ias_pu_triple_cut->Write();
-
-       
-
-
-
+       TCanvas *ias_pu_triple_cut_ratio = new TCanvas("IAS_triple_cut_IH_RATIO","RATIO IAS from multiple templates cut IH");
+       auto rp4 = new TRatioPlot(Ias_when_PU_ih_cut_triple[2], Ias_when_PU_ih_cut_triple[0]);
+       ias_pu_triple_cut_ratio->SetTicks(0,1);
+       rp4->Draw();
+       ias_pu_triple_cut_ratio->Write();
 
        Ias_toy->Write();
-       /*
-       for(int j = 0: j< ias_intervals; j++){
-           for (int i = 0; i < nPE ; i++){
-               PE_Ias[j][i]->Write();
-               PE_Ias_cutih[j][i]->Write();
-           }
-       }  
-       */
+       
+       
        PU_VS_NPV->Write();
        NPV_all->Write();
        NPV_presel->Write();
@@ -4357,6 +4831,16 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        PATHLENGHT_BIN_ETA_0_01->Write();
        TptGivenPathlenght1->Write();
 
+
+       if(compute_PE){ 
+           for(int j = 0; j< ias_intervals; j++){
+               for (int i = 0; i < nPE ; i++){
+                   PE_Ias[j][i]->Write();
+                   PE_Ias_cutih[j][i]->Write();
+               }
+           }
+       }
+       cout << "Number of events with npv > 99 : " << nb_above_99_npv << endl;  
        OutIasStudy->Close();
   }
   
@@ -4407,11 +4891,116 @@ double run2analysis::getMassSpecial(float ih, float p, float K, float C, float N
   return mbest;
 }
 
-double run2analysis::getdEdX(std::vector <float> charge, std::vector <float> pathlength, std::vector <int> subdetId, std::vector <int> moduleGeometry, std::vector <bool> bool_cleaning, std::vector <bool> mustBeInside, double* scaleFactors, TH3* templateHisto, int n_estim, double dropLowerDeDxValue, int & nv, int & ns) {
-  double result= getdEdX(charge, pathlength, subdetId, moduleGeometry, bool_cleaning, mustBeInside, scaleFactors, templateHisto, n_estim, dropLowerDeDxValue, 0., nv, ns);
+double run2analysis::getdEdXIs(std::vector <float> charge, std::vector <float> pathlength, std::vector <int> subdetId, std::vector <int> moduleGeometry, std::vector <bool> bool_cleaning, std::vector <bool> mustBeInside, double* scaleFactors, TH3* templateHisto, int n_estim, double dropLowerDeDxValue, double dropHigherDeDxValue, int & nv, int & ns) {
+  double result=-1;
+//     double dropLowerDeDxValue=0.15;
+     size_t MaxStripNOM=99;
+     bool usePixel=true;
+     bool useStrip=true;
+
+     std::vector<double> vect;
+
+     bool debugprint=false;
+     unsigned int SiStripNOM = 0;
+     ns=0;
+
+     for(unsigned int h=0;h<charge.size();h++){
+        if (debugprint) std::cout << "look on dedxHits in computedEdx " << h << std::endl;
+        if(!usePixel && subdetId[h]<3)continue; // skip pixels
+        if(!useStrip && subdetId[h]>=3)continue; // skip strips        
+        if(useStrip && subdetId[h]>=3 && !bool_cleaning[h])continue;
+
+        if(useStrip && subdetId[h]>=3 && !bool_cleaning[h])continue;
+        if(useStrip && subdetId[h]>=3 && !mustBeInside[h])continue;
+        if(useStrip && subdetId[h]>=3 && ++SiStripNOM > MaxStripNOM) continue; // skip remaining strips, but not pixel
+
+        int ClusterCharge = charge[h];
+        if (subdetId[h]>=3 && charge[h]>=254) ns++;
+
+        double scaleFactor = scaleFactors[0];
+        if (subdetId[h]<3) scaleFactor *= scaleFactors[1]; // add pixel scaling
+        if (debugprint) std::cout << " after SF " << std::endl;
+
+        if(templateHisto){  //save discriminator probability
+           double ChargeOverPathlength = scaleFactor*ClusterCharge/(pathlength[h]*10.0*(subdetId[h]<3?265:1));
+           int    BinX   = templateHisto->GetXaxis()->FindBin(moduleGeometry[h]);
+           int    BinY   = templateHisto->GetYaxis()->FindBin(pathlength[h]*10.0); //*10 because of cm-->mm
+           int    BinZ   = templateHisto->GetZaxis()->FindBin(ChargeOverPathlength);
+           double Prob   = templateHisto->GetBinContent(BinX,BinY,BinZ);
+           vect.push_back(Prob); //save probability
+           if (debugprint) std::cout << " after Prob vect.push_back " << std::endl;
+        }else{
+           double Norm = (subdetId[h]<3)?3.61e-06:3.61e-06*265;
+           double ChargeOverPathlength = scaleFactor*Norm*ClusterCharge/pathlength[h];
+           vect.push_back(ChargeOverPathlength); //save charge
+           if (debugprint) std::cout << " after ChargeOverPathlength vect.push_back " << std::endl;
+        }
+     }
+
+     if(dropLowerDeDxValue>0){
+         std::vector <double> tmp (vect.size());
+         std::copy (vect.begin(), vect.end(), tmp.begin());
+         std::sort(tmp.begin(), tmp.end(), std::greater<double>() );
+         int nTrunc = tmp.size()*dropLowerDeDxValue;
+
+         vect.clear();
+         for(unsigned int t=0;t+nTrunc<tmp.size();t++){vect.push_back(tmp[t]);}
+     }
+     if (debugprint) std::cout << " after dropLowerDeDxValue " << std::endl;
+
+     if(dropHigherDeDxValue>0){
+         std::vector <double> tmp (vect.size());
+         std::copy (vect.begin(), vect.end(), tmp.begin());
+         std::sort(tmp.begin(), tmp.end(), std::less<double>() );
+         int nTrunc = tmp.size()*dropHigherDeDxValue;
+
+         vect.clear();
+         for(unsigned int t=0;t+nTrunc<tmp.size();t++){vect.push_back(tmp[t]);}
+     }
+     if (debugprint) std::cout << " after dropHigherDeDxValue " << std::endl;
+
+
+
+
+
+
+     int size = vect.size();
+     nv = size;
+
+     if(size>0){
+        if(templateHisto){  //dEdx discriminator
+          //Ias discriminator
+          result = 1.0/(12*size);
+           std::sort(vect.begin(), vect.end(), std::less<double>() );
+           for(int i=1;i<=size;i++){
+              result += pow(vect[i-1] - ((2.0*i-1.0)/(2.0*size)),2);
+           }
+           result *= (3.0/size);
+           if (debugprint) std::cout << " Ias discriminator " << result << std::endl;
+        }else{  //dEdx estimator
+           //harmonic2 estimator
+           result=0;
+//           double expo = -2;
+           double expo = -1* n_estim;
+           for(int i = 0; i< size; i ++){
+              result+=pow(vect[i],expo);
+           }
+           result = pow(result/size,1./expo);
+           if (debugprint) std::cout << " harmonic discriminator " << result << " with expo " << expo << std::endl;
+        }
+     }else{
+        result = -1;
+     }
+     if (debugprint) std::cout << " ok finished computeDeDx " << std::endl;
+
+
   return result;
 }
 
+double run2analysis::getdEdXIs(std::vector <float> charge, std::vector <float> pathlength, std::vector <int> subdetId, std::vector <int> moduleGeometry, std::vector <bool> bool_cleaning, std::vector <bool> mustBeInside, double* scaleFactors, TH3* templateHisto, int n_estim, double dropLowerDeDxValue, int & nv, int & ns) {
+  double result= getdEdXIs(charge, pathlength, subdetId, moduleGeometry, bool_cleaning, mustBeInside, scaleFactors, templateHisto, n_estim, dropLowerDeDxValue, 0., nv, ns);
+  return result;
+}
 
 double run2analysis::getdEdX(std::vector <float> charge, std::vector <float> pathlength, std::vector <int> subdetId, std::vector <int> moduleGeometry, std::vector <bool> bool_cleaning, std::vector <bool> mustBeInside, double* scaleFactors, TH3* templateHisto, int n_estim, double dropLowerDeDxValue, double dropHigherDeDxValue, int & nv, int & ns) {
   double result=-1;
@@ -4516,6 +5105,11 @@ double run2analysis::getdEdX(std::vector <float> charge, std::vector <float> pat
      if (debugprint) std::cout << " ok finished computeDeDx " << std::endl;
 
 
+  return result;
+}
+
+double run2analysis::getdEdX(std::vector <float> charge, std::vector <float> pathlength, std::vector <int> subdetId, std::vector <int> moduleGeometry, std::vector <bool> bool_cleaning, std::vector <bool> mustBeInside, double* scaleFactors, TH3* templateHisto, int n_estim, double dropLowerDeDxValue, int & nv, int & ns) {
+  double result= getdEdX(charge, pathlength, subdetId, moduleGeometry, bool_cleaning, mustBeInside, scaleFactors, templateHisto, n_estim, dropLowerDeDxValue, 0., nv, ns);
   return result;
 }
 
