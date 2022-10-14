@@ -757,9 +757,15 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    TH2D* NPV_ih_cut1 = new TH2D("NPV_vs_ih_cut_1", "NPV vs ih, IH > 1",100,0,100,100,0,10);
 
 
+   TH1D* P_LOWPU_pt50 = new TH1D("P_LOWPU_pt50_cutih", "P for NPV < 10, Ih > 3.47 and pt > 50", 100, 0,1000);
+   TH1D* P_HIGHPU_pt50 = new TH1D("P_HIGHPU_pt50_cutih", "P for NPV > 60, Ih > 3.47 and pt > 50", 100, 0,1000);
 
-   TH1D* P_single_pt50_ias_qtl_80_90 = new TH1D("P_single_pt50_ias_qtl_80_90", "P single for IAS single in 80-90% qtl [0.07-1] and pt > 50", 200, 0,1000);
-   TH1D* P_triple_pt50_ias_qtl_80_90 = new TH1D("P_triple_pt50_ias_qtl_80_90", "P triple for IAS triple in 80-90% qtl [0.07-1] and pt > 50", 200, 0,1000);
+
+   TH1D* P_PU_28_30_pt50 = new TH1D("P_PU_28_30_pt50_cutih", "P for NPV in [28-30], Ih > 3.47 and pt > 50", 100, 0,1000);
+   TH1D* P_PU_32_34_pt50 = new TH1D("P_PU_32_34_pt50_cutih", "P for NPV in [32-34], Ih > 3.47 and pt > 50", 100, 0,1000);
+
+   TH1D* P_single_pt50_ias_qtl_80_90 = new TH1D("P_single_pt50_ias_qtl_80_90", "P single for IAS single in 80-90% qtl [0.07-1] and pt > 50", 100, 0,1000);
+   TH1D* P_triple_pt50_ias_qtl_80_90 = new TH1D("P_triple_pt50_ias_qtl_80_90", "P triple for IAS triple in 80-90% qtl [0.07-1] and pt > 50", 100, 0,1000);
 
 
    const double P_Min               = 1   ;
@@ -1593,6 +1599,13 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    NPV_ias_single_cutih->Sumw2();
    NPV_ias_triple_cutih->Sumw2();
 
+
+   P_LOWPU_pt50->Sumw2();
+   P_HIGHPU_pt50->Sumw2();
+   P_PU_28_30_pt50->Sumw2();
+   P_PU_32_34_pt50->Sumw2();
+
+
    P_triple_pt50_ias_qtl_80_90->Sumw2();
 
    NPV_ih_cutih->Sumw2();
@@ -2113,6 +2126,11 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                        double SFtest = dEdxSF[0];
                        float norm_mult_test = 265;
                        //cout << "modul geom is strip : "<< dedx_isstrip[iclu] << " , geom = " << dedx_modulgeom[iclu] << " , track p = " << track_p[index_of_the_track] << " , pathlength * 10 = " << dedx_pathlength[iclu]*10 << " charge*SF / pathlength*10 = " << SFtest*ch1/(dedx_pathlength[iclu]*10)<<endl; 
+
+
+                       double low_bin_center = PATHLENGTH_GIVEN_MODULE->GetXaxis()->GetBinCenter(6); 
+                       double high_bin_center = PATHLENGTH_GIVEN_MODULE->GetXaxis()->GetBinCenter(8); 
+
                      
                        double bin_center = PATHLENGTH_GIVEN_MODULE->GetXaxis()->GetBinCenter(7); 
                        double widthbinnb = PATHLENGTH_GIVEN_MODULE->GetBinWidth(7);
@@ -2120,7 +2138,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                        if(dedx_modulgeom[iclu]==1){
                            if (track_p[index_of_the_track]>10 && track_p[index_of_the_track]<45) {
                                if(dedx_isstrip[iclu]){
-                                   if( (dedx_pathlength[iclu]*10) > (bin_center-(widthbinnb/2)) && (dedx_pathlength[iclu]*10) < (bin_center+(widthbinnb/2))){
+                                   if( (dedx_pathlength[iclu]*10) > (low_bin_center-(widthbinnb/2)) && (dedx_pathlength[iclu]*10) < (high_bin_center+(widthbinnb/2))){
                                        CHARGE_OVER_PATHLENGTH_GIVEN_MODULE->Fill(SFtest*ch1/(dedx_pathlength[iclu]*10));
                                        CHARGE_OVER_PATHLENGTH_GIVEN_MODULE_STRIP->Fill(SFtest*ch1/(dedx_pathlength[iclu]*10));
                                        if(sclus_charge[iclu]<254){
@@ -2136,7 +2154,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                                }
                                else{
                                    SFtest *=dEdxSF[1];
-                                   if( (dedx_pathlength[iclu]*10) > (bin_center-(widthbinnb/2)) && (dedx_pathlength[iclu]*10) < (bin_center+(widthbinnb/2))){
+                                   if( (dedx_pathlength[iclu]*10) > (low_bin_center-(widthbinnb/2)) && (dedx_pathlength[iclu]*10) < (high_bin_center+(widthbinnb/2))){
                                        CHARGE_OVER_PATHLENGTH_GIVEN_MODULE->Fill(SFtest*ch1/(dedx_pathlength[iclu]*10*norm_mult_test));
                                        CHARGE_OVER_PATHLENGTH_GIVEN_MODULE_PIXEL->Fill(SFtest*ch1/(dedx_pathlength[iclu]*10*norm_mult_test));
                                    }
@@ -2175,331 +2193,360 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
         
                 } // end loop iclu
 
+                //TEST nb measurements for production template
+                /*
+                for (int iclu=track_index_hit[hscp_track_idx[ihs]]; iclu<track_index_hit[hscp_track_idx[ihs]]+track_nhits[hscp_track_idx[ihs]]; iclu++){
+                    if (dedx_subdetid[iclu]>=3) {
+
+                    }
+                    else{
+
+                    } 
+                    float ch1=dedx_charge[iclu];
+                    bool clean1=true;
+
+                    vector<int> Qcor = SaturationCorrection(Quncor,0.10,0.04, true,20,25);
+                    float newcharge =0;
+                    for (unsigned int inwc=0; inwc<Qcor.size(); inwc++) { newcharge+=Qcor[inwc]; }
+                    ch1=newcharge;
+                    clean1=sclus_clusclean2[iclu]; // clusterCleaning with Xtalk inversion and Saturation (September 22, 2021)
+                }
+                */
+
                 if(UsePURwtHSCP){
-                    int nval20_0=0;
-                    int nsat20_0=0;
-                    int anval20_0=0;
-                    int ansat20_0=0;
-                    int nval4_0=0;
-                    int nsatv4_0=0;
-                    int nv = 0;
-                    int ns = 0;
-                    double scaleFactor = dEdxSF[0];
-                    float norm_mult = 265; // 247 or 265?
-                    double ias_all = getdEdX(charge_corr, pathlength, subdetId, moduleGeometry, bool_cleaning, mustBeInside, dEdxSF, dEdxTemplatesAll,2, 0., anval20_0, ansat20_0);
-                    double ias_strip_pu_base = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesAll,2, 0., nval20_0, nsat20_0);
-                    double is_strip_pu_base = getdEdXIs(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesAll,2, 0., nval20_0, nsat20_0);
-      
-                    double ih0_noL1 = getdEdX(charge_corr3, pathlength3, subdetId3, moduleGeometry3, bool_cleaning3, mustBeInside3, dEdxSF, NULL,2, 0., nv, ns);
-                    double ih_strip = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF,  NULL,2, 0.15,  nv, ns); 
 
-                    if (track_p[index_of_the_track] > 5 && track_p[index_of_the_track] < 100){
-                        if(abs(track_eta[index_of_the_track])<1){
-                            IhStripVsP_presk->Fill(ih_strip,track_p[index_of_the_track]);
-                            IhBestStripVsP_presk->Fill(ih0_noL1,track_p[index_of_the_track]);
-                            IhBestvsIas_p_5_100->Fill(ih0_noL1,ias_strip_pu_base);
+                    // APPLY Selection on the Number of Measurements :
+                    if (charge_corr3.size()>9) {
+    
+                        int nval20_0=0;
+                        int nsat20_0=0;
+                        int anval20_0=0;
+                        int ansat20_0=0;
+                        int nval4_0=0;
+                        int nsatv4_0=0;
+                        int nv = 0;
+                        int ns = 0;
+                        double scaleFactor = dEdxSF[0];
+                        float norm_mult = 265; // 247 or 265?
+                        double ias_all = getdEdX(charge_corr, pathlength, subdetId, moduleGeometry, bool_cleaning, mustBeInside, dEdxSF, dEdxTemplatesAll,2, 0., anval20_0, ansat20_0);
+                        double ias_strip_pu_base = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesAll,2, 0., nval20_0, nsat20_0);
+                        double is_strip_pu_base = getdEdXIs(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesAll,2, 0., nval20_0, nsat20_0);
+          
+                        double ih0_noL1 = getdEdX(charge_corr3, pathlength3, subdetId3, moduleGeometry3, bool_cleaning3, mustBeInside3, dEdxSF, NULL,2, 0., nv, ns);
+                        double ih_strip = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF,  NULL,2, 0.15,  nv, ns); 
+    
+                        if (track_p[index_of_the_track] > 5 && track_p[index_of_the_track] < 100){
+                            if(abs(track_eta[index_of_the_track])<1){
+                                IhStripVsP_presk->Fill(ih_strip,track_p[index_of_the_track]);
+                                IhBestStripVsP_presk->Fill(ih0_noL1,track_p[index_of_the_track]);
+                                IhBestvsIas_p_5_100->Fill(ih0_noL1,ias_strip_pu_base);
+                            }
+                            if(abs(track_eta[index_of_the_track])<0.2){
+                                IhStripVsPtight_presk->Fill(ih_strip,track_p[index_of_the_track]);
+                                IhBestStripVsPtight_presk->Fill(ih0_noL1,track_p[index_of_the_track]);
+                            }
+           
                         }
-                        if(abs(track_eta[index_of_the_track])<0.2){
-                            IhStripVsPtight_presk->Fill(ih_strip,track_p[index_of_the_track]);
-                            IhBestStripVsPtight_presk->Fill(ih0_noL1,track_p[index_of_the_track]);
+                        if (track_p[index_of_the_track] > 10 && track_p[index_of_the_track] < 45){
+                            if(abs(track_eta[index_of_the_track])<1){
+                               IhBestvsIas_p_10_45->Fill(ih0_noL1,ias_strip_pu_base);
+                               IasStripVsIh0noL1_p_10_45->Fill(ias_strip_pu_base,ih0_noL1);
+                               IhBestvsP_10_45_central->Fill(ih0_noL1,track_p[index_of_the_track]);
+                            }
+                            if(abs(track_eta[index_of_the_track])<0.2){ 
+                                IhBestvsP_10_45_tight->Fill(ih0_noL1,track_p[index_of_the_track]);
+                            }
                         }
-       
-                    }
-                    if (track_p[index_of_the_track] > 10 && track_p[index_of_the_track] < 45){
-                        if(abs(track_eta[index_of_the_track])<1){
-                           IhBestvsIas_p_10_45->Fill(ih0_noL1,ias_strip_pu_base);
-                           IasStripVsIh0noL1_p_10_45->Fill(ias_strip_pu_base,ih0_noL1);
-                           IhBestvsP_10_45_central->Fill(ih0_noL1,track_p[index_of_the_track]);
+           
+                        if(track_p[index_of_the_track] > 5 && track_p[index_of_the_track] < 100){
+                            if(abs(track_eta[index_of_the_track])<1){
+                                //add presk for prescale in case of p < 5 GeV
+                                IhStripVsP->Fill(ih_strip,track_p[index_of_the_track]);
+                                IhBestStripVsP->Fill(ih0_noL1,track_p[index_of_the_track]);
+                            }
+                            if(abs(track_eta[index_of_the_track])<0.2){
+                                IhStripVsPtight->Fill(ih_strip,track_p[index_of_the_track]);
+                                IhBestStripVsPtight->Fill(ih0_noL1,track_p[index_of_the_track]);
+                            }
+                            
                         }
-                        if(abs(track_eta[index_of_the_track])<0.2){ 
-                            IhBestvsP_10_45_tight->Fill(ih0_noL1,track_p[index_of_the_track]);
-                        }
-                    }
-       
-                    if(track_p[index_of_the_track] > 5 && track_p[index_of_the_track] < 100){
-                        if(abs(track_eta[index_of_the_track])<1){
-                            //add presk for prescale in case of p < 5 GeV
-                            IhStripVsP->Fill(ih_strip,track_p[index_of_the_track]);
-                            IhBestStripVsP->Fill(ih0_noL1,track_p[index_of_the_track]);
-                        }
-                        if(abs(track_eta[index_of_the_track])<0.2){
-                            IhStripVsPtight->Fill(ih_strip,track_p[index_of_the_track]);
-                            IhBestStripVsPtight->Fill(ih0_noL1,track_p[index_of_the_track]);
-                        }
-                        
-                    }
-                
-
-                    PT_compute_ias->Fill(track_pt[index_of_the_track]);
-                    P_compute_ias->Fill(track_p[index_of_the_track]);
-                    P_after_presel->Fill(track_p[index_of_the_track]);
-                     
-                    //Cut on track_p pour avoir la meme statistique que celle pour les templates
-                    if (track_p[index_of_the_track]>10 && track_p[index_of_the_track]<45) {
-                        if(compute_PE){
-                            //cout << "EVENT #" << jentry << " ,HSCP #" << ihs << " has track_p = " << track_p[index_of_the_track]<<endl;
-                            for (int i = 0; i < ias_intervals; i++){
-                                if ( npv > ias_top_born[i] && npv <= ias_top_born[i+1]){
-                                    //cout << " NPV for this event : " << npv << endl;
-                                    for (int k = 0 ; k < nPE ; k++){
-                                        int nval20_0 = 0,nsat20_0=0;
-                                        double ias_poisson_err = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, PE_dEdxTemplatesPU[i][k],2, 0., nval20_0, nsat20_0);
-                                        PE_Ias[i][k]->Fill(ias_poisson_err);
-                                        //if (k%50 == 0) cout << "below IH cut : PE #"<<k<< " from PU bin #" << i+1 << " has ias = " << ias_poisson_err <<endl;
-                                        
-                                        if (ih0_noL1 > 3.47){
-                                            PE_Ias_cutih[i][k]->Fill(ias_poisson_err);
-                                            //if(k%50 == 0) cout << "above IH cut : PE #" <<k<< " from PU bin #" << i+1 << " has ias = " << ias_poisson_err <<endl;
+                    
+    
+                        PT_compute_ias->Fill(track_pt[index_of_the_track]);
+                        P_compute_ias->Fill(track_p[index_of_the_track]);
+                        P_after_presel->Fill(track_p[index_of_the_track]);
+                         
+                        //Cut on track_p pour avoir la meme statistique que celle pour les templates
+                        if (track_p[index_of_the_track]>10 && track_p[index_of_the_track]<45) {
+                            if(compute_PE){
+                                //cout << "EVENT #" << jentry << " ,HSCP #" << ihs << " has track_p = " << track_p[index_of_the_track]<<endl;
+                                for (int i = 0; i < ias_intervals; i++){
+                                    if ( npv > ias_top_born[i] && npv <= ias_top_born[i+1]){
+                                        //cout << " NPV for this event : " << npv << endl;
+                                        for (int k = 0 ; k < nPE ; k++){
+                                            int nval20_0 = 0,nsat20_0=0;
+                                            double ias_poisson_err = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, PE_dEdxTemplatesPU[i][k],2, 0., nval20_0, nsat20_0);
+                                            PE_Ias[i][k]->Fill(ias_poisson_err);
+                                            //if (k%50 == 0) cout << "below IH cut : PE #"<<k<< " from PU bin #" << i+1 << " has ias = " << ias_poisson_err <<endl;
+                                            
+                                            if (ih0_noL1 > 3.47){
+                                                PE_Ias_cutih[i][k]->Fill(ias_poisson_err);
+                                                //if(k%50 == 0) cout << "above IH cut : PE #" <<k<< " from PU bin #" << i+1 << " has ias = " << ias_poisson_err <<endl;
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-       
-       
-       
-                        if (npv >= 16 && npv <= 18){
-                           double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuLow,2, 0., nval20_0, nsat20_0);
-                           Ias_when_PU_in_16_18_base->Fill(ias_strip_pu_base);    
-                           Ias_when_PU_in_16_18_triple->Fill(ias_strip_pu_triple);    
-                        }
-                        if ( npv >= 30 && npv <= 32){
-                           double ias_strip_pu_triple =getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuMedium,2, 0., nval20_0, nsat20_0);
-                           Ias_when_PU_in_30_32_base->Fill(ias_strip_pu_base);
-                           Ias_when_PU_in_30_32_triple->Fill(ias_strip_pu_triple);
-             
-                        }
-                        bool ihcut = false;
-                        if (ih0_noL1 > 3.47 ) ihcut = true;
-       
-                        eff_ih_PU->Fill(ihcut,npv);
-                        for (int l = 0 ; l < ias_intervals; l++){
-                            if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
-                                ih_eff_denom[l] += 1;
-                                if (ih0_noL1 > 3.47) ih_eff_num[l] +=1;
-       
+           
+           
+           
+                            if (npv >= 16 && npv <= 18){
+                               double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuLow,2, 0., nval20_0, nsat20_0);
+                               Ias_when_PU_in_16_18_base->Fill(ias_strip_pu_base);    
+                               Ias_when_PU_in_16_18_triple->Fill(ias_strip_pu_triple);    
                             }
-                        }
-                        double trf = 0;
-                        for (int l = 0 ; l < ias_intervals; l++){
-                            if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
-                                double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
-                                double is_strip_pu_triple = getdEdXIs(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
-                                //cut sur IAS 
-                                // 0.115
-                                float mass_single_nocut=-1;
-                                if(ias_strip_pu_base>0.115){
-                                    if (ih0_noL1 - Cval_nol1>0) mass_single_nocut= sqrt((ih0_noL1 - Cval_nol1)*track_p[hscp_track_idx[ihs]]*track_p[hscp_track_idx[ihs]]/Kval_nol1);
-                                    MASS_SINGLE_nocut->Fill(mass_single_nocut);
-                                }
-                                float mass_triple_nocut=-1;
-                                if(ias_strip_pu_triple>0.115){
-                                    if (ih0_noL1 - Cval_nol1>0) mass_triple_nocut= sqrt((ih0_noL1 - Cval_nol1)*track_p[hscp_track_idx[ihs]]*track_p[hscp_track_idx[ihs]]/Kval_nol1);
-                                    MASS_TRIPLE_nocut->Fill(mass_triple_nocut);
-                                }
-
-                                Ias_triple_Vs_Ih0noL1_p_10_45->Fill(ias_strip_pu_triple,ih0_noL1);
-                                Ias_simple_Vs_Ih0noL1_p_10_45->Fill(ias_strip_pu_base,ih0_noL1);
-                                //check pT > 50, et IAS entre 80-90 quantile 
-                                Ias_when_PU_triple[l]->Fill(ias_strip_pu_triple);
-                                Ias_when_PU[l]->Fill(ias_strip_pu_base);
-       
-                                Is_when_PU_triple[l]->Fill(is_strip_pu_triple);
-                                Is_when_PU[l]->Fill(is_strip_pu_base);
-       
-                                PU_distrib[l]->Fill(npv);
-                                sums_ias_nocut[l] += ias_strip_pu_base;
-                                sums_ias_triple_nocut[l] += ias_strip_pu_triple;
-                                Ias_all_triple_nocut->Fill(ias_strip_pu_triple);
-       
+                            if ( npv >= 30 && npv <= 32){
+                               double ias_strip_pu_triple =getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuMedium,2, 0., nval20_0, nsat20_0);
+                               Ias_when_PU_in_30_32_base->Fill(ias_strip_pu_base);
+                               Ias_when_PU_in_30_32_triple->Fill(ias_strip_pu_triple);
+                 
                             }
+                            bool ihcut = false;
+                            if (ih0_noL1 > 3.47 ) ihcut = true;
+           
+                            eff_ih_PU->Fill(ihcut,npv);
+                            for (int l = 0 ; l < ias_intervals; l++){
+                                if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
+                                    ih_eff_denom[l] += 1;
+                                    if (ih0_noL1 > 3.47) ih_eff_num[l] +=1;
+           
+                                }
+                            }
+                            double trf = 0;
+                            for (int l = 0 ; l < ias_intervals; l++){
+                                if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
+                                    double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
+                                    double is_strip_pu_triple = getdEdXIs(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
+                                    //cut sur IAS 
+                                    // 0.115
+                                    float mass_single_nocut=-1;
+                                    if(ias_strip_pu_base>0.115){
+                                        if (ih0_noL1 - Cval_nol1>0) mass_single_nocut= sqrt((ih0_noL1 - Cval_nol1)*track_p[hscp_track_idx[ihs]]*track_p[hscp_track_idx[ihs]]/Kval_nol1);
+                                        MASS_SINGLE_nocut->Fill(mass_single_nocut);
+                                    }
+                                    float mass_triple_nocut=-1;
+                                    if(ias_strip_pu_triple>0.115){
+                                        if (ih0_noL1 - Cval_nol1>0) mass_triple_nocut= sqrt((ih0_noL1 - Cval_nol1)*track_p[hscp_track_idx[ihs]]*track_p[hscp_track_idx[ihs]]/Kval_nol1);
+                                        MASS_TRIPLE_nocut->Fill(mass_triple_nocut);
+                                    }
+    
+                                    Ias_triple_Vs_Ih0noL1_p_10_45->Fill(ias_strip_pu_triple,ih0_noL1);
+                                    Ias_simple_Vs_Ih0noL1_p_10_45->Fill(ias_strip_pu_base,ih0_noL1);
+                                    //check pT > 50, et IAS entre 80-90 quantile 
+                                    Ias_when_PU_triple[l]->Fill(ias_strip_pu_triple);
+                                    Ias_when_PU[l]->Fill(ias_strip_pu_base);
+           
+                                    Is_when_PU_triple[l]->Fill(is_strip_pu_triple);
+                                    Is_when_PU[l]->Fill(is_strip_pu_base);
+           
+                                    PU_distrib[l]->Fill(npv);
+                                    sums_ias_nocut[l] += ias_strip_pu_base;
+                                    sums_ias_triple_nocut[l] += ias_strip_pu_triple;
+                                    Ias_all_triple_nocut->Fill(ias_strip_pu_triple);
+           
+                                }
+                            }
+                            if (npv > ias_top_born[ias_intervals]) trf = -1;
+           
+                            Ias_all_base_nocut->Fill(ias_strip_pu_base);
+           
+                            for (int l = 0 ; l < ias_intervals; l++){
+                                if (ih0_noL1 > 3.47){
+                                    if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
+                                        double ias_strip_pu_triple_l = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
+                                        double is_strip_pu_triple_l = getdEdXIs(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
+           
+                                        float mass_single=-1;
+                                        if(ias_strip_pu_base>0.1){
+                                            IAS_triple_when_simple_above_0p115->Fill(ias_strip_pu_triple_l);
+                                            if (ih0_noL1 - Cval_nol1>0) mass_single= sqrt((ih0_noL1 - Cval_nol1)*track_p[hscp_track_idx[ihs]]*track_p[hscp_track_idx[ihs]]/Kval_nol1);
+                                            MASS_SINGLE_ihcut->Fill(mass_single);
+                                            if(ias_strip_pu_triple_l < 0.1){
+                                                MASS_SINGLE_ihcut_base_notriple_ias_0p1->Fill(mass_single);
+                                            }
+                                        }
+                                        //BLINDED, WE STAY BETWEEN 80 - 90 QTL, X - 0.115
+                                        //
+                                        //
+                                        if (ias_strip_pu_base > 0.08 && ias_strip_pu_base < 1.115){
+    
+                                        }
+                                        
+                                        //
+                                        float mass_triple=-1;
+                                        if(ias_strip_pu_triple_l>0.1){
+                                            IAS_simple_when_triple_above_0p115->Fill(ias_strip_pu_base);
+                                            if (ih0_noL1 - Cval_nol1>0) mass_triple= sqrt((ih0_noL1 - Cval_nol1)*track_p[hscp_track_idx[ihs]]*track_p[hscp_track_idx[ihs]]/Kval_nol1);
+                                            MASS_TRIPLE_ihcut->Fill(mass_triple);
+                                            if(ias_strip_pu_base < 0.1){
+                                                MASS_TRIPLE_ihcut_triple_nobase_ias_0p1->Fill(mass_triple);
+                                            }
+                                        }
+                                        Ias_all_triple_cutIH->Fill(ias_strip_pu_triple_l);
+                                        Ias_all_base_cutIH->Fill(ias_strip_pu_base);
+                                        sums_ias_triple[l]+=ias_strip_pu_triple_l;
+                                        sums_ias[l]+=ias_strip_pu_base;
+           
+                                        Ias_when_PU_ih_cut[l]->Fill(ias_strip_pu_base);
+                                        Ias_when_PU_ih_cut_triple[l]->Fill(ias_strip_pu_triple_l);
+           
+                                        Is_when_PU_ih_cut[l]->Fill(is_strip_pu_base);
+                                        Is_when_PU_ih_cut_triple[l]->Fill(is_strip_pu_triple_l);
+                                    }
+                                }
+                            }
+           
+    
                         }
-                        if (npv > ias_top_born[ias_intervals]) trf = -1;
-       
-                        Ias_all_base_nocut->Fill(ias_strip_pu_base);
-       
-                        for (int l = 0 ; l < ias_intervals; l++){
-                            if (ih0_noL1 > 3.47){
+                         
+    
+                        else{
+                            if (npv <= 20){
+                                double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuHigh,2, 0., nval20_0, nsat20_0);
+                                Ias_below_5GeV_PU_below_20_base->Fill(ias_strip_pu_base);
+                                Ias_below_5GeV_PU_below_20_triple->Fill(ias_strip_pu_triple);
+           
+           
+                            }
+                            else if (npv > 20 && npv <=40){
+                                double ias_strip_pu_triple =getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuMedium,2, 0., nval20_0, nsat20_0);
+                                Ias_below_5GeV_PU_between_base->Fill(ias_strip_pu_base);
+                                Ias_below_5GeV_PU_between_triple->Fill(ias_strip_pu_triple);
+                                
+           
+                            }
+                            else if (npv > 40){
+                                double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuHigh,2, 0., nval20_0, nsat20_0); 
+                                Ias_below_5GeV_PU_above_40_base->Fill(ias_strip_pu_base);
+                                Ias_below_5GeV_PU_above_40_triple->Fill(ias_strip_pu_triple);
+           
+                            }              
+           
+                        }
+                        if(track_pt[index_of_the_track]>50){
+                                
+                            for (int l = 0 ; l < ias_intervals; l++){
                                 if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
                                     double ias_strip_pu_triple_l = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
                                     double is_strip_pu_triple_l = getdEdXIs(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
-       
-                                    float mass_single=-1;
-                                    if(ias_strip_pu_base>0.1){
-                                        IAS_triple_when_simple_above_0p115->Fill(ias_strip_pu_triple_l);
-                                        if (ih0_noL1 - Cval_nol1>0) mass_single= sqrt((ih0_noL1 - Cval_nol1)*track_p[hscp_track_idx[ihs]]*track_p[hscp_track_idx[ihs]]/Kval_nol1);
-                                        MASS_SINGLE_ihcut->Fill(mass_single);
-                                        if(ias_strip_pu_triple_l < 0.1){
-                                            MASS_SINGLE_ihcut_base_notriple_ias_0p1->Fill(mass_single);
-                                        }
+                                    NPV_ih_nocut->Fill(npv,ih0_noL1);
+                                    if(ih0_noL1 > 1){
+                                        NPV_ih_cut1->Fill(npv,ih0_noL1);
                                     }
-                                    //BLINDED, WE STAY BETWEEN 80 - 90 QTL, X - 0.115
-                                    //
-                                    //
-                                    if (ias_strip_pu_base > 0.08 && ias_strip_pu_base < 1.115){
+                                    if (ih0_noL1 > 3.47){
+                                        float mass_single_pt_sup50=-1;
+                                        NPV_ias_single_cutih->Fill(npv,ias_strip_pu_base); 
+                                        NPV_ih_cutih->Fill(npv,ih0_noL1); 
+                                        NPV_ias_triple_cutih->Fill(npv,ias_strip_pu_triple_l); 
+    
 
-                                    }
-                                    
-                                    //
-                                    float mass_triple=-1;
-                                    if(ias_strip_pu_triple_l>0.1){
-                                        IAS_simple_when_triple_above_0p115->Fill(ias_strip_pu_base);
-                                        if (ih0_noL1 - Cval_nol1>0) mass_triple= sqrt((ih0_noL1 - Cval_nol1)*track_p[hscp_track_idx[ihs]]*track_p[hscp_track_idx[ihs]]/Kval_nol1);
-                                        MASS_TRIPLE_ihcut->Fill(mass_triple);
-                                        if(ias_strip_pu_base < 0.1){
-                                            MASS_TRIPLE_ihcut_triple_nobase_ias_0p1->Fill(mass_triple);
+                                        if( npv <= 10) P_LOWPU_pt50->Fill(track_p[hscp_track_idx[ihs]]);
+                                        if( npv >= 60) P_HIGHPU_pt50->Fill(track_p[hscp_track_idx[ihs]]);
+
+                                        if(npv >= 28 && nvp <=30 ) P_PU_28_30_pt50->Fill(track_p[hscp_track_idx[ihs]]);
+                                        if(npv >= 32 && nvp <=34 ) P_PU_32_34_pt50->Fill(track_p[hscp_track_idx[ihs]]);
+        
+
+                                        IAS_single_pt50->Fill(ias_strip_pu_base);
+                                        IAS_triple_pt50->Fill(ias_strip_pu_triple_l);
+                                        if(ias_strip_pu_triple_l > 0.1) nb_ias_0p1_triple+=1;
+                                        if(ias_strip_pu_base > 0.1) nb_ias_0p1_single+=1;
+    
+                                        if(ias_strip_pu_triple_l > 0.2) nb_ias_0p2_triple+=1;
+                                        if(ias_strip_pu_base > 0.2) nb_ias_0p2_single+=1;
+    
+    
+                                        if(ias_strip_pu_triple_l > 0.3) nb_ias_0p3_triple+=1;
+                                        if(ias_strip_pu_base > 0.3) nb_ias_0p3_single+=1;
+    
+                                        if (ias_strip_pu_base > 0.07 && ias_strip_pu_base < 0.1){
+                                            P_single_pt50_ias_qtl_80_90->Fill(track_p[hscp_track_idx[ihs]]);
+                                            if (ih0_noL1 - Cval_nol1>0) mass_single_pt_sup50= sqrt((ih0_noL1 - Cval_nol1)*track_p[hscp_track_idx[ihs]]*track_p[hscp_track_idx[ihs]]/Kval_nol1);
+                                            MASS_SINGLE_ihcut_ptsupp50_qtl_80_90_ias->Fill(mass_single_pt_sup50);
+                                            if(track_pt[index_of_the_track]>100) MASS_SINGLE_ihcut_ptsupp100_qtl_80_90_ias->Fill(mass_single_pt_sup50);
+                                            if(ias_strip_pu_triple_l < 0.07){
+                                                MASS_SINGLE_ihcut_base_notriple_ias_0p1_ptsupp50_qtl_80_90_ias->Fill(mass_single_pt_sup50);
+                                            } 
+                                        }
+    
+                                        float mass_triple_pt_sup50=-1;
+                                        if( ias_strip_pu_triple_l >0.07 && ias_strip_pu_triple_l < 0.1){
+                                            P_triple_pt50_ias_qtl_80_90->Fill(track_p[hscp_track_idx[ihs]]);
+                                            if (ih0_noL1 - Cval_nol1>0) mass_triple_pt_sup50= sqrt((ih0_noL1 - Cval_nol1)*track_p[hscp_track_idx[ihs]]*track_p[hscp_track_idx[ihs]]/Kval_nol1);
+                                            MASS_TRIPLE_ihcut_ptsupp50_qtl_80_90_ias->Fill(mass_triple_pt_sup50);
+                                            if(track_pt[index_of_the_track]>100) MASS_TRIPLE_ihcut_ptsupp100_qtl_80_90_ias->Fill(mass_triple_pt_sup50);
+                                            if(ias_strip_pu_base < 0.07){
+                                                MASS_TRIPLE_ihcut_triple_nobase_ias_0p1_ptsupp50_qtl_80_90_ias->Fill(mass_triple_pt_sup50);
+                                            }
                                         }
                                     }
-                                    Ias_all_triple_cutIH->Fill(ias_strip_pu_triple_l);
-                                    Ias_all_base_cutIH->Fill(ias_strip_pu_base);
-                                    sums_ias_triple[l]+=ias_strip_pu_triple_l;
-                                    sums_ias[l]+=ias_strip_pu_base;
-       
-                                    Ias_when_PU_ih_cut[l]->Fill(ias_strip_pu_base);
-                                    Ias_when_PU_ih_cut_triple[l]->Fill(ias_strip_pu_triple_l);
-       
-                                    Is_when_PU_ih_cut[l]->Fill(is_strip_pu_base);
-                                    Is_when_PU_ih_cut_triple[l]->Fill(is_strip_pu_triple_l);
+                                    if(ih0_noL1 - Cval_nol1>0){
+                                        NPV_ih_cut3p29->Fill(npv,ih0_noL1);
+                                        if(ias_strip_pu_triple_l > 0.1) nb_ias_0p1_triple_cut3p29+=1;
+                                        if(ias_strip_pu_base > 0.1) nb_ias_0p1_single_cut3p29+=1;
+    
+                                        if(ias_strip_pu_triple_l > 0.2) nb_ias_0p2_triple_cut3p29+=1;
+                                        if(ias_strip_pu_base > 0.2) nb_ias_0p2_single_cut3p29+=1;
+    
+                                        if(ias_strip_pu_triple_l > 0.3) nb_ias_0p3_triple_cut3p29+=1;
+                                        if(ias_strip_pu_base > 0.3) nb_ias_0p3_single_cut3p29+=1;
+                                    }
+                                     
+                                    if(ias_strip_pu_triple_l > 0.1) nb_ias_0p1_triple_nocut+=1;
+                                    if(ias_strip_pu_base > 0.1) nb_ias_0p1_single_nocut+=1;
+                                    if(ias_strip_pu_triple_l > 0.2) nb_ias_0p2_triple_nocut+=1;
+                                    if(ias_strip_pu_base > 0.2) nb_ias_0p2_single_nocut+=1;
+    
+                                    if(ias_strip_pu_triple_l > 0.3) nb_ias_0p3_triple_nocut+=1;
+                                    if(ias_strip_pu_base > 0.3) nb_ias_0p3_single_nocut+=1;
                                 }
                             }
+                        } //END IF PT > 50
+                        IAS_VS_PT->Fill(ias_all,track_pt[index_of_the_track]);
+                        //cout << "filling ias_vs_pt with ias : " << ias_all << " for a pt = " << track_pt[index_of_the_track] << endl;
+                        
+                        if(track_pt[index_of_the_track]>60 && track_pt[index_of_the_track]<=80){
+                           ias_bin_pt[0]->Fill(ias_all);
+                           //cout << "filling ias for pt bin 60-80 with ias : " << ias_all << " and pt = " << track_pt[index_of_the_track] << endl;
                         }
-       
-
-                    }
-                     
-
-                    else{
-                        if (npv <= 20){
-                            double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuHigh,2, 0., nval20_0, nsat20_0);
-                            Ias_below_5GeV_PU_below_20_base->Fill(ias_strip_pu_base);
-                            Ias_below_5GeV_PU_below_20_triple->Fill(ias_strip_pu_triple);
-       
-       
+                        if(track_pt[index_of_the_track] > 80 && track_pt[index_of_the_track] <= 100){
+                           ias_bin_pt[1]->Fill(ias_all);
+                           //cout << "filling ias for pt bin 80-100 with ias : " << ias_all << " and pt = " << track_pt[index_of_the_track] << endl;
                         }
-                        else if (npv > 20 && npv <=40){
-                            double ias_strip_pu_triple =getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuMedium,2, 0., nval20_0, nsat20_0);
-                            Ias_below_5GeV_PU_between_base->Fill(ias_strip_pu_base);
-                            Ias_below_5GeV_PU_between_triple->Fill(ias_strip_pu_triple);
-                            
-       
+                        if(track_pt[index_of_the_track] > 100 && track_pt[index_of_the_track] <= 120){
+                           ias_bin_pt[2]->Fill(ias_all);
                         }
-                        else if (npv > 40){
-                            double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPuHigh,2, 0., nval20_0, nsat20_0); 
-                            Ias_below_5GeV_PU_above_40_base->Fill(ias_strip_pu_base);
-                            Ias_below_5GeV_PU_above_40_triple->Fill(ias_strip_pu_triple);
-       
-                        }              
-       
-                    }
-                    if(track_pt[index_of_the_track]>50){
-                            
-                        for (int l = 0 ; l < ias_intervals; l++){
-                            if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
-                                double ias_strip_pu_triple_l = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
-                                double is_strip_pu_triple_l = getdEdXIs(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
-                                NPV_ih_nocut->Fill(npv,ih0_noL1);
-                                if(ih0_noL1 > 1){
-                                    NPV_ih_cut1->Fill(npv,ih0_noL1);
-                                }
-                                if (ih0_noL1 > 3.47){
-                                    float mass_single_pt_sup50=-1;
-                                    //if(ias_strip_pu_base < 0.1){
-                                    NPV_ias_single_cutih->Fill(npv,ias_strip_pu_base); 
-                                    NPV_ih_cutih->Fill(npv,ih0_noL1); 
-                                   // }
-                                    //if(ias_strip_pu_triple_l < 0.1){
-                                    NPV_ias_triple_cutih->Fill(npv,ias_strip_pu_triple_l); 
-
-                                   // }
-                                    IAS_single_pt50->Fill(ias_strip_pu_base);
-                                    IAS_triple_pt50->Fill(ias_strip_pu_triple_l);
-                                    if(ias_strip_pu_triple_l > 0.1) nb_ias_0p1_triple+=1;
-                                    if(ias_strip_pu_base > 0.1) nb_ias_0p1_single+=1;
-
-                                    if(ias_strip_pu_triple_l > 0.2) nb_ias_0p2_triple+=1;
-                                    if(ias_strip_pu_base > 0.2) nb_ias_0p2_single+=1;
-
-
-                                    if(ias_strip_pu_triple_l > 0.3) nb_ias_0p3_triple+=1;
-                                    if(ias_strip_pu_base > 0.3) nb_ias_0p3_single+=1;
-
-                                    if (ias_strip_pu_base > 0.07 && ias_strip_pu_base < 0.1){
-                                        P_single_pt50_ias_qtl_80_90->Fill(track_p[hscp_track_idx[ihs]]);
-                                        if (ih0_noL1 - Cval_nol1>0) mass_single_pt_sup50= sqrt((ih0_noL1 - Cval_nol1)*track_p[hscp_track_idx[ihs]]*track_p[hscp_track_idx[ihs]]/Kval_nol1);
-                                        MASS_SINGLE_ihcut_ptsupp50_qtl_80_90_ias->Fill(mass_single_pt_sup50);
-                                        if(track_pt[index_of_the_track]>100) MASS_SINGLE_ihcut_ptsupp100_qtl_80_90_ias->Fill(mass_single_pt_sup50);
-                                        if(ias_strip_pu_triple_l < 0.07){
-                                            MASS_SINGLE_ihcut_base_notriple_ias_0p1_ptsupp50_qtl_80_90_ias->Fill(mass_single_pt_sup50);
-                                        } 
-                                    }
-
-                                    float mass_triple_pt_sup50=-1;
-                                    if( ias_strip_pu_triple_l >0.07 && ias_strip_pu_triple_l < 0.1){
-                                        P_triple_pt50_ias_qtl_80_90->Fill(track_p[hscp_track_idx[ihs]]);
-                                        if (ih0_noL1 - Cval_nol1>0) mass_triple_pt_sup50= sqrt((ih0_noL1 - Cval_nol1)*track_p[hscp_track_idx[ihs]]*track_p[hscp_track_idx[ihs]]/Kval_nol1);
-                                        MASS_TRIPLE_ihcut_ptsupp50_qtl_80_90_ias->Fill(mass_triple_pt_sup50);
-                                        if(track_pt[index_of_the_track]>100) MASS_TRIPLE_ihcut_ptsupp100_qtl_80_90_ias->Fill(mass_triple_pt_sup50);
-                                        if(ias_strip_pu_base < 0.07){
-                                            MASS_TRIPLE_ihcut_triple_nobase_ias_0p1_ptsupp50_qtl_80_90_ias->Fill(mass_triple_pt_sup50);
-                                        }
-                                    }
-                                }
-                                if(ih0_noL1 - Cval_nol1>0){
-                                    NPV_ih_cut3p29->Fill(npv,ih0_noL1);
-                                    if(ias_strip_pu_triple_l > 0.1) nb_ias_0p1_triple_cut3p29+=1;
-                                    if(ias_strip_pu_base > 0.1) nb_ias_0p1_single_cut3p29+=1;
-
-                                    if(ias_strip_pu_triple_l > 0.2) nb_ias_0p2_triple_cut3p29+=1;
-                                    if(ias_strip_pu_base > 0.2) nb_ias_0p2_single_cut3p29+=1;
-
-                                    if(ias_strip_pu_triple_l > 0.3) nb_ias_0p3_triple_cut3p29+=1;
-                                    if(ias_strip_pu_base > 0.3) nb_ias_0p3_single_cut3p29+=1;
-                                }
-                                 
-                                if(ias_strip_pu_triple_l > 0.1) nb_ias_0p1_triple_nocut+=1;
-                                if(ias_strip_pu_base > 0.1) nb_ias_0p1_single_nocut+=1;
-                                if(ias_strip_pu_triple_l > 0.2) nb_ias_0p2_triple_nocut+=1;
-                                if(ias_strip_pu_base > 0.2) nb_ias_0p2_single_nocut+=1;
-
-                                if(ias_strip_pu_triple_l > 0.3) nb_ias_0p3_triple_nocut+=1;
-                                if(ias_strip_pu_base > 0.3) nb_ias_0p3_single_nocut+=1;
-                            }
+                        if(track_pt[index_of_the_track] > 120 && track_pt[index_of_the_track] <= 140){
+                           ias_bin_pt[3]->Fill(ias_all); 
                         }
-                    } //END IF PT > 50
-                    IAS_VS_PT->Fill(ias_all,track_pt[index_of_the_track]);
-                    //cout << "filling ias_vs_pt with ias : " << ias_all << " for a pt = " << track_pt[index_of_the_track] << endl;
-                    
-                    if(track_pt[index_of_the_track]>60 && track_pt[index_of_the_track]<=80){
-                       ias_bin_pt[0]->Fill(ias_all);
-                       //cout << "filling ias for pt bin 60-80 with ias : " << ias_all << " and pt = " << track_pt[index_of_the_track] << endl;
-                    }
-                    if(track_pt[index_of_the_track] > 80 && track_pt[index_of_the_track] <= 100){
-                       ias_bin_pt[1]->Fill(ias_all);
-                       //cout << "filling ias for pt bin 80-100 with ias : " << ias_all << " and pt = " << track_pt[index_of_the_track] << endl;
-                    }
-                    if(track_pt[index_of_the_track] > 100 && track_pt[index_of_the_track] <= 120){
-                       ias_bin_pt[2]->Fill(ias_all);
-                    }
-                    if(track_pt[index_of_the_track] > 120 && track_pt[index_of_the_track] <= 140){
-                       ias_bin_pt[3]->Fill(ias_all); 
-                    }
-                    if(track_pt[index_of_the_track] > 140 && track_pt[index_of_the_track] <= 160){
-                       ias_bin_pt[4]->Fill(ias_all);
-                    }
-                    if(track_pt[index_of_the_track] > 160 && track_pt[index_of_the_track] <= 180){
-                       ias_bin_pt[5]->Fill(ias_all);
-                    }
-                    if(track_pt[index_of_the_track] > 180 && track_pt[index_of_the_track] <= 200){
-                       ias_bin_pt[6]->Fill(ias_all);
-                    }
-                    if(track_pt[index_of_the_track] > 200 && track_pt[index_of_the_track] <= 220){
-                       ias_bin_pt[7]->Fill(ias_all);
-                    }
-                    if(track_pt[index_of_the_track] > 220 && track_pt[index_of_the_track] <= 240){
-                       ias_bin_pt[8]->Fill(ias_all);
-                    }
-                    if(track_pt[index_of_the_track] > 240 && track_pt[index_of_the_track] <= 260){
-                       ias_bin_pt[9]->Fill(ias_all);
+                        if(track_pt[index_of_the_track] > 140 && track_pt[index_of_the_track] <= 160){
+                           ias_bin_pt[4]->Fill(ias_all);
+                        }
+                        if(track_pt[index_of_the_track] > 160 && track_pt[index_of_the_track] <= 180){
+                           ias_bin_pt[5]->Fill(ias_all);
+                        }
+                        if(track_pt[index_of_the_track] > 180 && track_pt[index_of_the_track] <= 200){
+                           ias_bin_pt[6]->Fill(ias_all);
+                        }
+                        if(track_pt[index_of_the_track] > 200 && track_pt[index_of_the_track] <= 220){
+                           ias_bin_pt[7]->Fill(ias_all);
+                        }
+                        if(track_pt[index_of_the_track] > 220 && track_pt[index_of_the_track] <= 240){
+                           ias_bin_pt[8]->Fill(ias_all);
+                        }
+                        if(track_pt[index_of_the_track] > 240 && track_pt[index_of_the_track] <= 260){
+                           ias_bin_pt[9]->Fill(ias_all);
+                        }
                     }
                 } // end PU reweighting
 
@@ -4544,6 +4591,12 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        NPV_ih_nocut->Write();
 
        NPV_ih_cut1->Write();   
+       P_LOWPU_pt50->Write();
+       P_HIGHPU_pt50->Write();
+       P_PU_28_30_pt50->Write();
+       P_PU_32_34_pt50->Write();
+
+
        P_triple_pt50_ias_qtl_80_90->Write();
        P_single_pt50_ias_qtl_80_90->Write();
        IAS_single_pt50->Write();

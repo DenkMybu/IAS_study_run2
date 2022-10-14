@@ -24,10 +24,10 @@ if __name__ == "__main__":
      else:
          print("Successfully opened root : ",file_trf)
 
-     hfile = TFile( 'Ratio_plots_num_denom.root', 'RECREATE' )
+     hfile = TFile( 'Ratio_plots_p_single_triple.root', 'RECREATE' )
 
-     hist_num_raw = file0.Get("HSCP_Mass_Single_ihcut_ptsupp50_qtl_80_90_ias") 
-     hist_denom_raw = file0.Get("HSCP_Mass_Triple_ihcut_ptsupp50_qtl_80_90_ias")
+     hist_num_raw = file0.Get("P_single_pt50_ias_qtl_80_90") 
+     hist_denom_raw = file0.Get("P_triple_pt50_ias_qtl_80_90")
 
      low_bin = 200
      high_bin = 1000
