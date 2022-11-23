@@ -384,6 +384,8 @@ public :
    TH3F* dEdxTemplatesAll = NULL;
 
    vector<TH3F*> dEdxTemplatesPU;
+   vector<TH3F*> dEdxTemplatesPUBis;
+
    vector< vector<TH3F*> > PE_dEdxTemplatesPU;
 
 

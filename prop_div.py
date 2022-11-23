@@ -2,7 +2,7 @@ import ROOT
 from ROOT import TCanvas, TFile, TH2F, TH2F,TH2D,TH3D, TGraph, TGraphErrors, TGraphAsymmErrors, TString, TPaveLabel, TRandom3, TPad, TColor, TLine, TH1D, TLegend
 import sys
 import argparse
-
+import math
 
 
 
@@ -187,7 +187,7 @@ if __name__ == "__main__":
 
 
      c =  TCanvas("c","canvas",800,800)
-     pad1 =  TPad("pad1","pad1",0,0.5,1,0.95)
+     pad1 =  TPad("pad1","pad1",0,0.3,1,0.95)
      pad1.SetLogy()
 
      #pad1.SetBottomMargin(0)
@@ -214,6 +214,8 @@ if __name__ == "__main__":
      axis.SetLabelSize(15)
      axis.SetTitleOffset(1.5)
 
+
+     '''
      c.cd()
      pad2 = TPad("pad2","pad2",0,0.3,1,0.5)
      #pad2.SetTopMargin(0)
@@ -265,7 +267,7 @@ if __name__ == "__main__":
      line_q1.Draw("same")
      line_q2.Draw("same")
      line.Draw("same")
-
+     '''
      c.cd()
      pad3 = TPad("pad3","pad3",0,0.07,1,0.27)
      #pad3.SetTopMargin(0)
@@ -280,8 +282,8 @@ if __name__ == "__main__":
      ratio_itg.SetTitle("")
      ratio_itg.Sumw2()
      ratio_itg.GetYaxis().SetTitle("Right Integrals blue / red ")
-     ratio_itg.SetMinimum(0.8)
-     ratio_itg.SetMaximum(1.3)
+     ratio_itg.SetMinimum(0.5)
+     ratio_itg.SetMaximum(2)
      ratio_itg.SetMarkerStyle(2)
      ratio_itg.SetMarkerSize(1)
      
@@ -290,13 +292,26 @@ if __name__ == "__main__":
      print("ITG den 50-50 = ", hden_norm.Integral(50,50))
      print("ITG num  0-0 = ", hnum_norm.Integral(0,0))
      print("ITG den  0-0 = ", hden_norm.Integral(0,0))
+
+
      for i in range(0,ratio_itg.GetNbinsX()+1):
-         it = hnum_norm.Integral(i,50)
+         err1 = ROOT.Double(0)
+         it = hnum_norm.IntegralAndError(i,50,err1)
          #print("it num",i, " = ", it)
-         it2 = hden_norm.Integral(i,50)
+         err2 = ROOT.Double(0)
+         it2 = hden_norm.IntegralAndError(i,50,err2)
          #print("it den",i, " = ", it2)
          if(it2 !=0):
-             ratio_itg.SetBinContent(i,it/it2)
+             ratio = it/it2
+
+             if(it != 0 and it2 != 0):
+                 if ( ( (err1/it)**2 + (err2/it2)**2 )- (2*(err1/it)*(err2/it2)) > 0 ):
+                      err_ratio = ratio * math.sqrt( ((err1/it)**2) + ((err2/it2)**2) - (2*(err1/it)*(err2/it2)))
+                 else:
+                     err_ratio = 0
+
+             ratio_itg.SetBinContent(i,ratio)
+             ratio_itg.SetBinError(i,err_ratio)
              print("bin #",i, " gets ratio = ",it, " / ", it2, " = ", it/it2)
              #SetBinError -> propagate errors each number
 
@@ -317,17 +332,17 @@ if __name__ == "__main__":
      ratio_itg.SetStats(0)
 
      ratio_itg.Draw("ep")
-     line2 = TLine(0,1,1,1)
+     line2 = TLine(0,1,0.6,1)
      line2.SetLineStyle(4)
      line2.Draw("same")
 
-     line3 = TLine(0.115,0.8,0.115,1.3)
+     line3 = TLine(0.115,0.5,0.115,2)
      line3.SetLineStyle(3)
      line3.SetLineColor(2)
      line3.SetLineWidth(2)
      line3.Draw("same")
      
-     line4 = TLine(0.19,0.8,0.19,1.3)
+     line4 = TLine(0.19,0.5,0.19,2)
      line4.SetLineStyle(3)
      line4.SetLineColor(2)
      line4.SetLineWidth(2)
