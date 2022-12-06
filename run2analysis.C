@@ -31,6 +31,8 @@ enum TrackQuality {
 bool writeTemplateOnDisk = false;
 bool writeTptHSCP = false;
 
+bool compute_delta_ias = true;
+
 bool computeSpecial= false;
 bool boolDeDxTemp= false;
 
@@ -714,6 +716,11 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    TH2D* IhBestvsP_10_45_central = new TH2D("Ih0_noL1_vs_P_10_45_central", "Ih0_noL1_vs_P_10_45_central",100,0,10.0,200,0,1000 );
    TH2D* IhBestvsP_10_45_tight = new TH2D("Ih0_noL1_vs_P_10_45_tight", "Ih0_noL1_vs_P_10_45_tight",100,0,10.0,200,0,1000 );
 
+   //TString ih_v_p_borns = "Ih0_noL1_vs_P_" + low_bound + "_" + high_bound;
+   TString ih_v_p_borns = "Ih0_noL1_vs_P_0_1000";
+   TH2D* IhBestvsP_template_borns = new TH2D(ih_v_p_borns, ih_v_p_borns,100,0,10.0,200,0,1000);
+
+
    TH1D* P_after_presel = new TH1D("P_after_presel","P_after_presel",50,0,100);
    TH1D* NPV_all = new TH1D("NPV_all","NPV all events",100,0,100);
    TH1D* NPV_presel = new TH1D("NPV_presel","NPV after presel",50,0,100);
@@ -799,6 +806,10 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    TH1D* PU_ias_single_0p3 = new TH1D("PU_when_ias_single_supp_0p3", "PU for events with IAS single > 0.3, Ih > 3.47 and pt > 50", 100, 0,100);
    TH1D* PU_ias_triple_0p3 = new TH1D("PU_when_ias_triple_supp_0p3", "PU for events with IAS triple > 0.3, Ih > 3.47 and pt > 50", 100, 0,100);
 
+
+   TH1D* PU_after_sel = new TH1D("PU_after_sel", "PU after presel + Ih > 3.47 and pt > 50", 100, 0,100);
+   TH1D* PU_after_presel = new TH1D("PU_after_presel", "PU after presel", 100, 0,100);
+   TH1D* PU_before_presel = new TH1D("PU_before_presel", "PU before presel", 100, 0,100);
 
    TH2D* NPV_mass_cutih = new TH2D("NPV_vs_mass_cutih_ias_single", "NPV vs MASS, Ih0_noL1 > 3.47, IAS single in 80-90% qtl [0.07-1]",100,0,100,200,0,1000);
    TH2D* NPV_mass_cut3p29 = new TH2D("NPV_vs_mass_cutih_3p29_ias_single", "NPV vs MASS, Ih0_noL1 > 3.29, IAS single in 80-90% qtl [0.07-1]",100,0,100,200,0,1000);
@@ -952,7 +963,8 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    PE_Ias_cutih.resize(ias_intervals,vector<TH1D*>(nPE));
 
    dEdxTemplatesPU.resize(ias_intervals, NULL);
-   dEdxTemplatesPUBis.resize(ias_intervals, NULL);
+   
+   if(compute_delta_ias) dEdxTemplatesPUBis.resize(ias_intervals, NULL);
  
    PE_dEdxTemplatesPU.resize(ias_intervals, vector<TH3F*>(nPE));
 
@@ -1009,7 +1021,6 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    //STATISTICAL TESTS
 
    int count_tenth = 0;
-   int choice_third = 3; //1 and 2 for first two thirds to produce templates, 3 for last reading third
    bool tenth_stat_prod = false;
    bool tenth_stat_study = true;
 
@@ -1026,9 +1037,17 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    TH1D* Ias_below_5GeV_PU_above_40_base  = new TH1D("Ias_for_p_below_5GeV_when_High_PU_base","Ias_for_p_below_5GeV_when_High_PU_base",50,0,1);
 
    
-   std::string name_delta_ias = "Ias(stat2) vs [Ias(stat2) - Ias(stat1)]" 
-   if(tenth_
-   TH2D* Ias_1_VS_Delta_Ias_1_2  = new TH2D("IAS_1_VS_Delta_Ias"," Ias(stat1) vs Ias(stat1) - Ias(stat2)",50,0,1,500,-0.5,0.5);
+   std::string name_delta_ias = "Ias(stat2) vs [Ias(stat2) - Ias(stat1)]";
+   if(tenth_stat_study) name_delta_ias += "_on_prod_tenth_";
+   name_delta_ias += "p_range_";
+   name_delta_ias += low_bound;
+   name_delta_ias += "_";
+   name_delta_ias += high_bound;
+  
+   const Int_t NBINS = 21;
+   Double_t edges[NBINS+1] = {0,0.02,0.04,0.08,0.1,0.12,0.14,0.16,0.18,0.2,0.22,0.28,0.34,0.4,0.46,0.52,0.6,0.68,0.76,0.84,0.92,1};
+
+   TH2D* Ias_1_VS_Delta_Ias_1_2  = new TH2D("IAS_1_VS_Delta_Ias",name_delta_ias.c_str(),NBINS,edges,500,-0.5,0.5);
 
    TH1D* Ias_toy  = new TH1D("Ias_toy_modgeom_1","Ias_toy_modgeom1",50,0,1);
 
@@ -1188,11 +1207,21 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    TH3D* Charge_Vs_Path_noL1_NoM = new TH3D( "Charge_Vs_Path_noL1_NoM", "Charge_Vs_Path_noL1", P_NBins, P_Min, P_Max, Path_NBins, Path_Min, Path_Max, Charge_NBins, Charge_Min, Charge_Max);
 
 
-   TH1D* PT_compute_ias = new TH1D("PT_for_tracks_ias","PT_for_tracks_ias",1000,0,1000);
-   TH1D* P_compute_ias = new TH1D("P_for_tracks_ias","P_for_tracks_ias",1000,0,1000);
+   TH1D* PT_compute_ias = new TH1D("PT_HSCP_presel","PT_HSCP_presel",1000,0,1000);
+   TH1D* P_compute_ias = new TH1D("P_HSCP_presel","P_HSCP_presel",1000,0,1000);
 
    TH1D* PT_hscp_compute_ias = new TH1D("HSCP_PT_for_tracks_ias_preselection","HSCP_PT_for_tracks_ias_post_presel",1000,0,1000);
    TH1D* P_hscp_compute_ias = new TH1D("HSCP_P_for_tracks_ias_preselection","HSCP_P_for_tracks_ias_post_presel",1000,0,1000);
+
+   
+
+   TH2D* SigPt_over_pt_vs_p_pre_presel = new TH2D("Sigma_pt_over_pt_vs_p_pre_presel","Sigma_pt_over_pt_vs_p_pre_presel",1000,0,1, 1000,0,1000);
+   TH2D* SigPt_over_pt2_vs_p_pre_presel = new TH2D("Sigma_pt_over_pt2_vs_p_pre_presel","Sigma_pt_over_pt2_vs_p_pre_presel",1000,0,0.01, 1000,0,1000);
+
+
+   TH2D* SigPt_over_pt_vs_p_post_presel = new TH2D("Sigma_pt_over_pt_vs_p_post_presel","Sigma_pt_over_pt_vs_p_post_presel",1000,0,1, 1000,0,1000);
+   TH2D* SigPt_over_pt2_vs_p_post_presel = new TH2D("Sigma_pt_over_pt2_vs_p_post_presel","Sigma_pt_over_pt2_vs_p_post_presel",1000,0,0.01, 1000,0,1000);
+
 
    TH2D* PU_VS_NPV = new TH2D( "PU_VS_NPV","PU_VS_NPV",100,0,100,100,0,100);
 
@@ -1287,6 +1316,8 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
    IhBestvsP_10_45_central->Sumw2();
    IhBestvsP_10_45_tight->Sumw2();
+
+   IhBestvsP_template_borns->Sumw2();
  
    IhBestvsIas_p_5_100->Sumw2();
    IhBestvsIas_p_10_45->Sumw2();
@@ -1296,6 +1327,11 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    P_compute_ias->Sumw2();
    P_hscp_compute_ias->Sumw2();
    PT_hscp_compute_ias->Sumw2();
+
+   SigPt_over_pt2_vs_p_pre_presel->Sumw2();
+   SigPt_over_pt_vs_p_pre_presel->Sumw2();
+   SigPt_over_pt2_vs_p_post_presel->Sumw2();
+   SigPt_over_pt_vs_p_post_presel->Sumw2();
 
    NPV_all->Sumw2();
    NPV_presel->Sumw2();
@@ -1646,6 +1682,10 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    PU_ias_single_0p3->Sumw2();
    PU_ias_triple_0p3->Sumw2();
 
+   PU_after_sel->Sumw2();
+   PU_after_presel->Sumw2();
+   PU_before_presel->Sumw2();
+
    P_LOWPU_pt50->Sumw2();
    P_HIGHPU_pt50->Sumw2();
 
@@ -1855,7 +1895,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    if (!dataFlag) templateFileName+="_MC";
 
    if(TemplateIso) templateFileName+="_15mars_selection_5_bin_eta_2p1_pmin_" + low_bound +"_pmax_" + high_bound + "_final_HSCP_iso15.root";
-   else templateFileName+="_15mars_selection_5_bin_eta_2p1_pmin_" + low_bound +"_pmax_" + high_bound + "_final_HSCP_noiso_new_stat1_tenth.root";
+   else templateFileName+="_15mars_selection_5_bin_eta_2p1_pmin_" + low_bound +"_pmax_" + high_bound + "_final_HSCP_noiso_new.root";
 
    TFile* OutputTemplate;
    if (writeTemplateOnDisk || writeTptHSCP) OutputTemplate = new TFile(templateFileName,"RECREATE");
@@ -1879,7 +1919,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        outputIAS+=high_bound;
        outputIAS+="_final_HSCP_";
 
-       if(StudyIso) outputIAS+="iso15_v2_tpt_stat1_tenth.root"; 
+       if(StudyIso) outputIAS+="iso15_v2.root"; 
        else outputIAS+="noiso_v2.root";
        
    }
@@ -1943,20 +1983,25 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
            string tr1 = std::to_string(ias_intervals);
            TemplateStudyIas+= tr1;
            TemplateStudyIas+= "_bin_eta_2p1_pmin_";
+           //TemplateStudyIasBis = TemplateStudyIas;
+
            TemplateStudyIas+=low_bound;
            TemplateStudyIas+="_pmax_";
            TemplateStudyIas+=high_bound;
            TemplateStudyIas+="_final_HSCP";
        }
       
+       
        TemplateStudyIasBis = TemplateStudyIas;
 
        if (TemplateIso) TemplateStudyIas+="_iso50_new.root";
        else{
-           TemplateStudyIas+="_noiso_new_stat1_tenth.root";
-           TemplateStudyIasBis+="_noiso_new_stat2_tenth.root";
+           TemplateStudyIas+="_noiso_new.root";
+           TemplateStudyIasBis+="_noiso_new_stat2.root";
        }
        std::string PE_TemplateStudyIas = "PE_templates_2018";
+
+
        PE_TemplateStudyIas+=Letter;
        if (TemplateIso) PE_TemplateStudyIas+="_iso50.root";
        else PE_TemplateStudyIas+="_noiso.root"; 
@@ -1966,7 +2011,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
        for (int i = 0; i < ias_intervals ; i++){
            dEdxTemplatesPU[i] = loadDeDxTemplate(TemplateStudyIas,names_templates[i].c_str(),true); 
-           dEdxTemplatesPUBis[i] = loadDeDxTemplate(TemplateStudyIasBis,names_templates[i].c_str(),true); 
+           if(compute_delta_ias) dEdxTemplatesPUBis[i] = loadDeDxTemplate(TemplateStudyIasBis,names_templates[i].c_str(),true); 
        }  
 
        if (compute_PE){ 
@@ -1990,6 +2035,7 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
    //cout << "run on first third entries, nb = " << nentries/3 << endl;
    //cout << "run on second third entries, between " << (2*nentries/3) << " and " << nentries << endl;
 
+   int choice_third = 3; //1 and 2 for first two thirds to produce templates, 3 for last reading third
 
    for (Long64_t jentry= 0 ; jentry < nentries ;jentry++) {
       Long64_t ientry = LoadTree(jentry);
@@ -2003,11 +2049,13 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
 //      if (runNumber<305150 || runNumber>305300) continue;
 //      if (runNumber>323232) continue;  // because 2018 is rereco at the moment --> remove this if when running on UL
-      
-      if ( ! (jentry+(choice_third-1)%3 == 0 && jentry != 0) ){          
+     
+      /* 
+      if ( ! ((jentry+(choice_third-1))%3 == 0 && jentry != 0) ){          
           continue;
       }
-      
+      */
+
       if(tenth_stat_prod){
           count_tenth+=1; 
           if( !(count_tenth%10 == 0)){
@@ -2101,11 +2149,16 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
              
 
              // no cut yet :  false if  dedxSObj->numberOfMeasurements() < 6 ;
-             
+             PU_before_presel->Fill(npv);
+             SigPt_over_pt2_vs_p_pre_presel->Fill( (track_pterr[index_of_the_track]/pow(track_pt[index_of_the_track],2)),track_p[index_of_the_track],presk_hscp);
+             SigPt_over_pt_vs_p_pre_presel->Fill(track_pterr[index_of_the_track]/track_pt[index_of_the_track],track_p[index_of_the_track],presk_hscp);
+   
              if (selection) {
-                PT_hscp_compute_ias->Fill(track_pt[index_of_the_track]);
-                P_hscp_compute_ias->Fill(track_p[index_of_the_track]);
-        
+                PU_after_presel->Fill(npv);
+                PT_hscp_compute_ias->Fill(track_pt[index_of_the_track],presk_hscp);
+                P_hscp_compute_ias->Fill(track_p[index_of_the_track],presk_hscp);
+
+                
                 NHSCP->Fill(2);
                 ptVsRun->Fill(runNumber,track_pt[index_of_the_track]);
 
@@ -2392,10 +2445,19 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                         PT_compute_ias->Fill(track_pt[index_of_the_track]);
                         P_compute_ias->Fill(track_p[index_of_the_track]);
                         P_after_presel->Fill(track_p[index_of_the_track]);
-                         
+                        if ( ih0_noL1 > 3.47){
+
+                            SigPt_over_pt2_vs_p_post_presel->Fill( (track_pterr[index_of_the_track]/pow(track_pt[index_of_the_track],2)),track_p[index_of_the_track],presk_hscp);
+                            SigPt_over_pt_vs_p_post_presel->Fill(track_pterr[index_of_the_track]/track_pt[index_of_the_track],track_p[index_of_the_track],presk_hscp);
+
+                        }
+                        if (ih0_noL1 > 3.47 && track_pt[index_of_the_track]>50){
+                           PU_after_sel->Fill(npv);
+                        }    
                         //Cut on track_p pour avoir la meme statistique que celle pour les templates
                         int lower_bd = stoi(low_bound);
                         int high_bd = stoi(high_bound);
+                        IhBestvsP_template_borns->Fill(ih0_noL1,track_p[index_of_the_track]);
                         if (track_p[index_of_the_track]>=lower_bd && track_p[index_of_the_track]<=high_bd) {
                             if(compute_PE){
                                 //cout << "EVENT #" << jentry << " ,HSCP #" << ihs << " has track_p = " << track_p[index_of_the_track]<<endl;
@@ -2416,7 +2478,6 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                                     }
                                 }
                             }
-           
            
            
                             if (npv >= 16 && npv <= 18){
@@ -2445,9 +2506,10 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
                             for (int l = 0 ; l < ias_intervals; l++){
                                 if ( npv > ias_top_born[l] && npv <= ias_top_born[l+1] ){
                                     double ias_strip_pu_triple = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
-
-                                    double ias_strip_pu_triple_bis = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPUBis[l],2, 0., nval20_0, nsat20_0);
-                                    Ias_1_VS_Delta_Ias_1_2->Fill(ias_strip_pu_triple_bis,(ias_strip_pu_triple_bis - ias_strip_pu_triple));
+                                    if(compute_delta_ias){
+                                        double ias_strip_pu_triple_bis = getdEdX(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPUBis[l],2, 0., nval20_0, nsat20_0);
+                                        Ias_1_VS_Delta_Ias_1_2->Fill(ias_strip_pu_triple_bis,(ias_strip_pu_triple_bis - ias_strip_pu_triple));
+                                    }
                                     double is_strip_pu_triple = getdEdXIs(charge_corr1, pathlength1, subdetId1, moduleGeometry1, bool_cleaning1, mustBeInside1, dEdxSF, dEdxTemplatesPU[l],2, 0., nval20_0, nsat20_0);
                                     //cut sur IAS 
                                     // 0.115
@@ -4778,6 +4840,11 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
 
        PU_ias_single_0p3->Write();
        PU_ias_triple_0p3->Write();
+
+       PU_after_sel->Write();
+       PU_after_presel->Write();
+       PU_before_presel->Write();
+
        P_LOWPU_pt50->Write();
        P_HIGHPU_pt50->Write();
        
@@ -5016,6 +5083,8 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        IhBestvsP_10_45_central->Write();
        IhBestvsP_10_45_tight->Write();
 
+
+       IhBestvsP_template_borns->Write();
        TCanvas *cstack = new TCanvas("c1","stacked + normalized distribution"); 
 
        THStack *hs = new THStack("hs","");
@@ -5162,7 +5231,11 @@ void run2analysis::Loop(int year, TString Letter, bool dataFlag=true)
        PT_hscp_compute_ias->Write();
        P_hscp_compute_ias->Write();
 
+       SigPt_over_pt2_vs_p_pre_presel->Write();
+       SigPt_over_pt_vs_p_pre_presel->Write();
 
+       SigPt_over_pt_vs_p_post_presel->Write();
+       SigPt_over_pt2_vs_p_post_presel->Write();
 
        Ias_1_VS_Delta_Ias_1_2->Write();
 
