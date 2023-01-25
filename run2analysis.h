@@ -91,6 +91,13 @@ public :
    Float_t         track_probQNoL1[nmax_tr];   //[ntracks]
    Float_t         track_probXY[nmax_tr];   //[ntracks]
    Float_t         track_probXYNoL1[nmax_tr];   //[ntracks]
+   Float_t         track_miniRelIso[nmax_tr];   //[ntracks]
+   Float_t         track_TkRelIso[nmax_tr];   //[ntracks]
+   Float_t         track_EoP[nmax_tr];   //[ntracks]
+
+   //CHJANGE TO INT
+   Int_t           track_nonl1pixhits[nmax_tr];   //[ntracks]
+   
    Int_t           ndedxhits;
    UInt_t          dedx_detid[nmax_cl];   //[ndedxhits]
    Int_t           dedx_subdetid[nmax_cl];   //[ndedxhits]
@@ -247,6 +254,11 @@ public :
    TBranch        *b_track_probQNoL1;   //!
    TBranch        *b_track_probXY;   //!
    TBranch        *b_track_probXYNoL1;   //!
+   TBranch        *b_track_miniRelIso;   //!
+   TBranch        *b_track_TkRelIso;   //!
+   TBranch        *b_track_EoP;
+   TBranch        *b_track_nonl1pixhits;
+
    TBranch        *b_ndedxhits;   //!
    TBranch        *b_dedx_detid;   //!
    TBranch        *b_dedx_subdetid;   //!
@@ -368,6 +380,11 @@ public :
    double getdEdXIs(std::vector <float> charge, std::vector <float> pathlength, std::vector <int> subdetId, std::vector <int> moduleGeometry, std::vector <bool> bool_cleaning, std::vector <bool> mustBeInside, double* scaleFactors, TH3* templateHisto, int n_estim, double dropLowerDeDxValue, double dropHigherDeDxValue, int & nv, int & ns);
    double getdEdXIs(std::vector <float> charge, std::vector <float> pathlength, std::vector <int> subdetId, std::vector <int> moduleGeometry, std::vector <bool> bool_cleaning, std::vector <bool> mustBeInside, double* scaleFactors, TH3* templateHisto, int n_estim, double dropLowerDeDxValue, int & nv, int & ns);
 
+   int factorial(int p);
+   double getBetan(const double alpha, const int size);
+   double getProb(std::vector <float> charge, std::vector <float> pathlength, std::vector <int> subdetId, std::vector <int> moduleGeometry, std::vector <bool> bool_cleaning, std::vector <bool> mustBeInside, double* scaleFactors, TH3* templateHisto, int n_estim, double dropLowerDeDxValue, double dropHigherDeDxValue, int & nv, int & ns);
+
+
    double getdEdX(std::vector <float> charge, std::vector <float> pathlength, std::vector <int> subdetId, std::vector <int> moduleGeometry, std::vector <bool> bool_cleaning, std::vector <bool> mustBeInside, double* scaleFactors, TH3* templateHisto, int n_estim, double dropLowerDeDxValue, double dropHigherDeDxValue, int &nv, int &ns);
    double getdEdX(std::vector <float> charge, std::vector <float> pathlength, std::vector <int> subdetId, std::vector <int> moduleGeometry, std::vector <bool> bool_cleaning, std::vector <bool> mustBeInside, double* scaleFactors, TH3* templateHisto, int n_estim, double dropLowerDeDxValue, int &nv, int &ns);
 //   float FMIP(const vector<float>& charge, const<vector>& path,  float thre);
@@ -451,6 +468,8 @@ public :
    float scaleValR2[calmax];
    float errorScaleValR2[calmax];
 
+   int nb_pass_presel = 0;
+   int nb_tot = 0;
 
    std::vector<int> CrossTalkInv(const std::vector<int>&  Q, const float x1=0.10, const float x2=0.04, bool way=true,float threshold=20,float thresholdSat=25);
    std::vector<int> SaturationCorrection(const std::vector<int>&  Q, const float x1=0.10, const float x2=0.04, bool way=true,float threshold=20,float thresholdSat=25);
@@ -567,7 +586,14 @@ void run2analysis::Init(TTree *tree)
    fChain->SetBranchAddress("track_ih_ampl_corr", track_ih_ampl_corr, &b_track_ih_ampl_corr);
    fChain->SetBranchAddress("track_ias_ampl", track_ias_ampl, &b_track_ias_ampl);
    fChain->SetBranchAddress("track_ias_ampl_corr", track_ias_ampl_corr, &b_track_ias_ampl_corr);
+   fChain->SetBranchAddress("track_miniRelIso", track_miniRelIso, &b_track_miniRelIso);
 
+   fChain->SetBranchAddress("track_TkRelIso", track_TkRelIso, &b_track_TkRelIso);
+   
+
+   fChain->SetBranchAddress("track_EoP", track_EoP, &b_track_EoP);
+
+   fChain->SetBranchAddress("track_nonl1pixhits", track_nonl1pixhits, &b_track_nonl1pixhits);
    if (fChain->GetBranch("track_probQ")) {
      boolProbQ = true;
      fChain->SetBranchAddress("track_probQ", track_probQ, &b_track_probQ);

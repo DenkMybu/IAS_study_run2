@@ -24,6 +24,11 @@ if __name__ == "__main__":
      split_name_denom = file_trf2.split('.')[0].split('_')
 
      print(len(split_name_num))
+
+     hname = "IAS_study_noiso_template_miniiso002"
+     hnameden ="IAS_study_noiso_template_noiso"
+
+     '''
      if(len(split_name_num) == 19):
          hname = "IAS_multiple_" + split_name_num[12] + "_" + split_name_num[14]
          if(len(split_name_denom) == 19):
@@ -47,7 +52,8 @@ if __name__ == "__main__":
              hnameden = "IAS_multiple_" + split_name_denom[20] + "_" + split_name_denom[21]
 
 
-            
+     '''
+    
      file0 = ROOT.TFile.Open(file_trf)
      if not file0:
          print("could not open file ", file_trf)
